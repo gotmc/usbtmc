@@ -10,11 +10,11 @@ import (
 type VisaResource struct {
 	resourceString string
 	interfaceType  string
-	boardIndex     uint64
-	manufacturerId uint64
-	modelCode      uint64
+	boardIndex     uint16
+	manufacturerId uint16
+	modelCode      uint16
 	serialNumber   string
-	interfaceIndex uint64
+	interfaceIndex uint16
 	resourceClass  string
 }
 
@@ -54,7 +54,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 		if err != nil {
 			return visa, errors.New("visa: boardIndex error")
 		}
-		visa.boardIndex = boardIndex
+		visa.boardIndex = uint16(boardIndex)
 	}
 
 	if matchMap["manufacturerId"] != "" {
@@ -62,7 +62,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 		if err != nil {
 			return visa, errors.New("visa: manufacturerId error")
 		}
-		visa.manufacturerId = manufacturerId
+		visa.manufacturerId = uint16(manufacturerId)
 	}
 
 	if matchMap["modelCode"] != "" {
@@ -70,7 +70,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 		if err != nil {
 			return visa, errors.New("visa: modelCode error")
 		}
-		visa.modelCode = modelCode
+		visa.modelCode = uint16(modelCode)
 	}
 
 	visa.serialNumber = matchMap["serialNumber"]
