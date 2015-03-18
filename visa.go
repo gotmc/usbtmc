@@ -50,7 +50,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 	}
 
 	if matchMap["boardIndex"] != "" {
-		boardIndex, err := strconv.ParseUint(matchMap["boardIndex"], 0, 0)
+		boardIndex, err := strconv.ParseUint(matchMap["boardIndex"], 0, 16)
 		if err != nil {
 			return visa, errors.New("visa: boardIndex error")
 		}
@@ -58,7 +58,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 	}
 
 	if matchMap["manufacturerId"] != "" {
-		manufacturerId, err := strconv.ParseUint(matchMap["manufacturerId"], 0, 0)
+		manufacturerId, err := strconv.ParseUint(matchMap["manufacturerId"], 0, 16)
 		if err != nil {
 			return visa, errors.New("visa: manufacturerId error")
 		}
@@ -66,7 +66,7 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 	}
 
 	if matchMap["modelCode"] != "" {
-		modelCode, err := strconv.ParseUint(matchMap["modelCode"], 0, 0)
+		modelCode, err := strconv.ParseUint(matchMap["modelCode"], 0, 16)
 		if err != nil {
 			return visa, errors.New("visa: modelCode error")
 		}
