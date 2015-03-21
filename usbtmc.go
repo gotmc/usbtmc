@@ -29,6 +29,7 @@ type Instrument struct {
 	BulkInEndpoint      usb.Endpoint
 	BulkOutEndpoint     usb.Endpoint
 	InterruptInEndpoint usb.Endpoint
+	bTag                byte
 }
 
 func (c *UsbtmcContext) NewInstrument(visaResourceName string) *Instrument {
@@ -189,4 +190,17 @@ func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 		return false
 	}
 	return hasUsbtmcInterface
+}
+
+func (instrument *Instrument) createBulkOutHeaderPrefix(msgId MsgId) [4]byte {
+	return [4]byte{
+		byte(msgId),
+		instrument.bTag,
+		invertbTag(instrument.bTag),
+		0x00,
+	}
+}
+
+func invertbTag(bTag byte) byte {
+	return bTag ^ 0xff
 }
