@@ -1,6 +1,8 @@
 package usbtmc
 
 import (
+	"bytes"
+	"encoding/binary"
 	"github.com/truveris/gousb/usb"
 	"log"
 )
@@ -192,11 +194,40 @@ func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 	return hasUsbtmcInterface
 }
 
-func (instrument *Instrument) createBulkOutHeaderPrefix(msgId MsgId) [4]byte {
-	return [4]byte{
-		byte(msgId),
-		instrument.bTag,
-		invertbTag(instrument.bTag),
+func (inst *Instrument) nextbTag() {
+	inst.bTag = (inst.bTag % 255) + 1
+}
+
+func (inst *Instrument) createBulkOutHeaderPrefix(msgId MsgId) [4]byte {
+	inst.nextbTag()
+	return [4]byte{byte(msgId), inst.bTag, invertbTag(inst.bTag), 0x00}
+}
+
+func packUint32(num uint32, order binary.ByteOrder) []byte {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, order, num)
+	if err != nil {
+		log.Fatal("Error packing uint32")
+	}
+	return buf.Bytes()
+}
+
+func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom bool) [12]byte {
+	prefix := inst.createBulkOutHeaderPrefix(DEV_DEP_MSG_OUT)
+	packedTransferSize := make([]byte, 4)
+	binary.LittleEndian.PutUint32(packedTransferSize, transferSize)
+	return [12]byte{
+		prefix[0],
+		prefix[1],
+		prefix[2],
+		prefix[3],
+		packedTransferSize[0],
+		packedTransferSize[1],
+		packedTransferSize[2],
+		packedTransferSize[3],
+		0x00,
+		0x00,
+		0x00,
 		0x00,
 	}
 }
