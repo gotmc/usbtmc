@@ -2,6 +2,8 @@ package usbtmc
 
 type bInterfaceClass byte
 
+const Reserved = 0x00
+
 const (
 	AUDIO                bInterfaceClass = 0x01
 	COMMUNICATIONS       bInterfaceClass = 0x02

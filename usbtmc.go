@@ -200,7 +200,7 @@ func (inst *Instrument) nextbTag() {
 
 func (inst *Instrument) createBulkOutHeaderPrefix(msgId MsgId) [4]byte {
 	inst.nextbTag()
-	return [4]byte{byte(msgId), inst.bTag, invertbTag(inst.bTag), 0x00}
+	return [4]byte{byte(msgId), inst.bTag, invertbTag(inst.bTag), Reserved}
 }
 
 func packUint32(num uint32, order binary.ByteOrder) []byte {
@@ -216,6 +216,10 @@ func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom
 	prefix := inst.createBulkOutHeaderPrefix(DEV_DEP_MSG_OUT)
 	packedTransferSize := make([]byte, 4)
 	binary.LittleEndian.PutUint32(packedTransferSize, transferSize)
+	bmTransferAttributes := byte(0x00)
+	if eom {
+		bmTransferAttributes = byte(0x01)
+	}
 	return [12]byte{
 		prefix[0],
 		prefix[1],
@@ -225,10 +229,10 @@ func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom
 		packedTransferSize[1],
 		packedTransferSize[2],
 		packedTransferSize[3],
-		0x00,
-		0x00,
-		0x00,
-		0x00,
+		bmTransferAttributes,
+		Reserved,
+		Reserved,
+		Reserved,
 	}
 }
 

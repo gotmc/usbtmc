@@ -69,3 +69,43 @@ func TestNextbTag(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateDevDepMsgOutBulkOutHeader(t *testing.T) {
+	tests := []struct {
+		transferSize uint32
+		eom          bool
+		inst         Instrument
+		desired      [12]byte
+	}{
+		{
+			9,
+			true,
+			Instrument{bTag: 255},
+			[12]byte{0x01, 0x01, 0xfe, 0x00, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
+		},
+		{
+			256,
+			false,
+			Instrument{bTag: 1},
+			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+		{
+			256,
+			true,
+			Instrument{bTag: 1},
+			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
+		},
+		{
+			512,
+			true,
+			Instrument{bTag: 1},
+			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
+		},
+	}
+	for _, test := range tests {
+		result := test.inst.createDevDepMsgOutBulkOutHeader(test.transferSize, test.eom)
+		if result != test.desired {
+			t.Errorf("BulkOutHeader == %x, want %x", result, test.desired)
+		}
+	}
+}
