@@ -1,10 +1,10 @@
 package usbtmc
 
 import (
-	"bytes"
 	"encoding/binary"
-	"github.com/truveris/gousb/usb"
 	"log"
+
+	"github.com/truveris/gousb/usb"
 )
 
 type UsbtmcContext struct {
@@ -104,96 +104,6 @@ func (i *Instrument) Close() error {
 	return i.Device.Close()
 }
 
-func FindVisaResourceName(visaResourceName string, c *usb.Context) (*usb.Device, error) {
-	devices, err := c.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
-	return devices[0], err
-}
-
-func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
-	visaResource, err := NewVisaResource(resourceString)
-	if err != nil {
-		log.Fatal("Invalid visaResource")
-	}
-
-	if visaResource.interfaceType != "USB" {
-		log.Fatal("Non-usb resource provided")
-	}
-
-	return func(desc *usb.Descriptor) bool {
-		hasUsbtmcInterface := false
-		switch {
-		case uint16(desc.Vendor) == visaResource.manufacturerId &&
-			uint16(desc.Product) == visaResource.modelCode &&
-			desc.Class == 0x00 && desc.SubClass == 0x00:
-			for _, config := range desc.Configs {
-				for _, iface := range config.Interfaces {
-					for _, setup := range iface.Setups {
-						switch {
-						case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 00:
-							hasUsbtmcInterface = true
-							log.Printf(
-								"USBTMC interface found on S/N %s, Vendor %d, Product %d",
-								desc.SerialNumber,
-								desc.Vendor,
-								desc.Product,
-							)
-							log.Printf("--> %s, %s", config, setup)
-						case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 01:
-							hasUsbtmcInterface = true
-							log.Printf(
-								"USB488 interface found on S/N %s, Vendor %d, Product %d",
-								desc.SerialNumber,
-								desc.Vendor,
-								desc.Product,
-							)
-							log.Printf("--> %s, %s", config, setup)
-						}
-					}
-				}
-			}
-		default:
-			return false
-		}
-		return hasUsbtmcInterface
-	}
-}
-
-func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
-	hasUsbtmcInterface := false
-	switch {
-	case desc.Class == 0x00 && desc.SubClass == 0x00:
-		for _, config := range desc.Configs {
-			for _, iface := range config.Interfaces {
-				for _, setup := range iface.Setups {
-					switch {
-					case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 00:
-						hasUsbtmcInterface = true
-						log.Printf(
-							"USBTMC interface found on S/N %s, Vendor %d, Product %d",
-							desc.SerialNumber,
-							desc.Vendor,
-							desc.Product,
-						)
-						log.Printf("--> %s, %s", config, setup)
-					case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 01:
-						hasUsbtmcInterface = true
-						log.Printf(
-							"USB488 interface found on S/N %s, Vendor %d, Product %d",
-							desc.SerialNumber,
-							desc.Vendor,
-							desc.Product,
-						)
-						log.Printf("--> %s, %s", config, setup)
-					}
-				}
-			}
-		}
-	default:
-		return false
-	}
-	return hasUsbtmcInterface
-}
-
 func (inst *Instrument) nextbTag() {
 	inst.bTag = (inst.bTag % 255) + 1
 }
@@ -201,15 +111,6 @@ func (inst *Instrument) nextbTag() {
 func (inst *Instrument) createBulkOutHeaderPrefix(msgId MsgId) [4]byte {
 	inst.nextbTag()
 	return [4]byte{byte(msgId), inst.bTag, invertbTag(inst.bTag), Reserved}
-}
-
-func packUint32(num uint32, order binary.ByteOrder) []byte {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, order, num)
-	if err != nil {
-		log.Fatal("Error packing uint32")
-	}
-	return buf.Bytes()
 }
 
 func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom bool) [12]byte {
@@ -236,6 +137,6 @@ func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom
 	}
 }
 
-func invertbTag(bTag byte) byte {
-	return bTag ^ 0xff
+func (inst *Instrument) SendScpi(scpi string) (int, error) {
+
 }
