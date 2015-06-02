@@ -4,6 +4,14 @@ type bInterfaceClass byte
 
 const Reserved = 0x00
 
+/*
+ * usbtmc.c by Agilent/Stefan Kopp sets this to 2048 with the comment:
+ * Size of driver internal IO buffer. Must be multiple of 4 and at least as
+ * large as wMaxPacketSize (which is usually 512 bytes).
+ */
+const UsbtmcSizeIobuffer = 1024 * 1024 // Set to 1MB
+const UsbtmcHeaderSize = 12
+
 const (
 	AUDIO                bInterfaceClass = 0x01
 	COMMUNICATIONS       bInterfaceClass = 0x02
@@ -25,23 +33,20 @@ const (
 	USB488_PROTOCOL bInterfaceProtocol = 0x01
 )
 
-type MsgId uint8
+type msgId uint8
 
 // Table 2 -- MsgID values
 // USBTMC Specificiation 1.0, April 14, 2003
 const (
-	DEV_DEP_MSG_OUT            MsgId = 1
-	REQUEST_DEV_DEP_MSG_IN     MsgId = 2
-	DEV_DEP_MSG_IN             MsgId = 2
-	VENDOR_SPECIFIC_OUT        MsgId = 126
-	REQUEST_VENDOR_SPECIFIC_IN MsgId = 127
-	VENDOR_SPECIFIC_IN         MsgId = 127
-)
-
-// Table 1 -- USB488 defined MsgID values
-// USBTMC-USB488 Specification 1.0, April 14, 2003
-const (
-	TRIGGER MsgId = 128
+	DEV_DEP_MSG_OUT            msgId = 1
+	REQUEST_DEV_DEP_MSG_IN     msgId = 2
+	DEV_DEP_MSG_IN             msgId = 2
+	VENDOR_SPECIFIC_OUT        msgId = 126
+	REQUEST_VENDOR_SPECIFIC_IN msgId = 127
+	VENDOR_SPECIFIC_IN         msgId = 127
+	// Table 1 -- USB488 defined MsgID values
+	// USBTMC-USB488 Specification 1.0, April 14, 2003
+	TRIGGER msgId = 128 // Table 1 USBTMC-USB488 Spec1.0, 14-Apr-03
 )
 
 type bRequest uint8

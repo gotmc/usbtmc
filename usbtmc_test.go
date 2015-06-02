@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-func TestCreateBulkOutHeaderPrefix(t *testing.T) {
+func TestEncodeBulkHeaderPrefix(t *testing.T) {
 	tests := []struct {
-		msgId        MsgId
+		msgId        msgId
 		instrument   Instrument
 		headerPrefix [4]byte
 	}{
@@ -14,9 +14,12 @@ func TestCreateBulkOutHeaderPrefix(t *testing.T) {
 		{DEV_DEP_MSG_OUT, Instrument{bTag: 128}, [4]byte{0x01, 0x81, 0x7e, 0x00}},
 		{DEV_DEP_MSG_OUT, Instrument{bTag: 254}, [4]byte{0x01, 0xff, 0x00, 0x00}},
 		{DEV_DEP_MSG_OUT, Instrument{bTag: 255}, [4]byte{0x01, 0x01, 0xfe, 0x00}},
+		{REQUEST_DEV_DEP_MSG_IN, Instrument{bTag: 3}, [4]byte{0x02, 0x04, 0xfb, 0x00}},
+		{VENDOR_SPECIFIC_OUT, Instrument{bTag: 3}, [4]byte{0x7e, 0x04, 0xfb, 0x00}},
+		{REQUEST_VENDOR_SPECIFIC_IN, Instrument{bTag: 3}, [4]byte{0x7f, 0x04, 0xfb, 0x00}},
 	}
 	for _, test := range tests {
-		headerPrefix := test.instrument.createBulkOutHeaderPrefix(test.msgId)
+		headerPrefix := test.instrument.encodeBulkHeaderPrefix(test.msgId)
 		if headerPrefix != test.headerPrefix {
 			t.Errorf(
 				"headerPrefix == %x, want %x",
