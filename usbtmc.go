@@ -13,29 +13,30 @@ import (
 	"github.com/truveris/gousb/usb"
 )
 
-// Structure representing a libusb session/context.
-type UsbtmcContext struct {
+// Context represents a libusb session/context.
+type Context struct {
 	ctx *usb.Context
 }
 
-// Create a new libusb session/context.
-func NewContext() *UsbtmcContext {
-	c := &UsbtmcContext{
+// NewContext creates a new libusb session/context.
+func NewContext() *Context {
+	c := &Context{
 		ctx: usb.NewContext(),
 	}
 	return c
 }
 
-// Set debug level for the libusb session/context
-func (c *UsbtmcContext) Debug(level int) {
+// Debug sets the debug level for the libusb session/context
+func (c *Context) Debug(level int) {
 	c.ctx.Debug(level)
 }
 
-// Close the libusb session/context
-func (c *UsbtmcContext) Close() error {
+// Close the libusb session/context.
+func (c *Context) Close() error {
 	return c.ctx.Close()
 }
 
+// Instrument represents a USBTMC enabled device.
 type Instrument struct {
 	/*
 		TODO(mdr) Not sure I like the name Instrument. Below are the names used by
@@ -54,8 +55,9 @@ type Instrument struct {
 	termCharEnabled     bool
 }
 
-// Create new USBTMC compliant device based on the given VISA resource name.
-func (c *UsbtmcContext) NewInstrument(visaResourceName string) *Instrument {
+// NewInstrument creates new USBTMC compliant device based on the given VISA
+// resource name.
+func (c *Context) NewInstrument(visaResourceName string) *Instrument {
 	// FIXME(mdr) Need to speed this up. Currently, it takes about 5s to create a
 	// new instrument.
 	var usbtmcConfig uint8
@@ -130,18 +132,22 @@ func (c *UsbtmcContext) NewInstrument(visaResourceName string) *Instrument {
 	}
 }
 
-func (i *Instrument) Close() error {
-	return i.Device.Close()
+// Close closes the Instrument.
+func (instr *Instrument) Close() error {
+	return instr.Device.Close()
 }
 
-func (i *Instrument) String() string {
-	return i.Device.Descriptor.SerialNumber
+// String providers the Stringer interface method for Instrument.
+func (instr *Instrument) String() string {
+	return instr.Device.Descriptor.SerialNumber
 }
 
-func (i *Instrument) Write(buf []byte) (n int, err error) {
+// Write writes the given buffer to the Instrument and returns the number of
+// bytes written along with an error code.
+func (instr *Instrument) Write(buf []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer.
-	header := i.createDevDepMsgOutBulkOutHeader(uint32(len(buf)), true)
+	header := instr.createDevDepMsgOutBulkOutHeader(uint32(len(buf)), true)
 	log.Printf("DevDepMsgOutBulkOutHeader = %v", header)
 	data := append(header[:], buf...)
 	if moduloFour := len(data) % 4; moduloFour > 0 {
@@ -149,47 +155,49 @@ func (i *Instrument) Write(buf []byte) (n int, err error) {
 		alignment := bytes.Repeat([]byte{0x00}, numAlignment)
 		data = append(data, alignment...)
 	}
-	n, err = i.BulkOutEndpoint.Write(data)
+	n, err = instr.BulkOutEndpoint.Write(data)
 	log.Printf("Wrote %d bytes to BulkOutEndpoint", n)
 	log.Printf("BulkOutEndpoint data: %v", data)
 	return n, err
 }
 
-func (i *Instrument) WriteString(s string) (n int, err error) {
-	n, err = i.Write([]byte(s))
+// WriteString writes the given string to the Instrument and returns the number
+// of bytes written along with an error code.
+func (instr *Instrument) WriteString(s string) (n int, err error) {
+	n, err = instr.Write([]byte(s))
 	return n, err
 }
 
-func (i *Instrument) Read(p []byte) (n int, err error) {
-	header := i.createRequestDevDepMsgInBulkOutHeader(uint32(len(p)))
+func (instr *Instrument) Read(p []byte) (n int, err error) {
+	header := instr.createRequestDevDepMsgInBulkOutHeader(uint32(len(p)))
 	log.Printf("RequestDevDepMsg Header to write = %v", header)
-	n, err = i.BulkOutEndpoint.Write(header[:])
-	n, err = i.BulkInEndpoint.Read(p)
+	n, err = instr.BulkOutEndpoint.Write(header[:])
+	n, err = instr.BulkInEndpoint.Read(p)
 	log.Printf("Read %d bytes on BulkInEndpoint", n)
 	return n, err
 }
 
-func (inst *Instrument) nextbTag() {
-	inst.bTag = (inst.bTag % 255) + 1
+func (instr *Instrument) nextbTag() {
+	instr.bTag = (instr.bTag % 255) + 1
 }
 
 // Create the first four bytes of the USBTMC meassage Bulk-OUT Header as shown
-// in USBTMC Table 1. The msgId value must match USBTMC Table 2.
-func (inst *Instrument) encodeBulkHeaderPrefix(msgId msgId) [4]byte {
-	inst.nextbTag()
+// in USBTMC Table 1. The msgID value must match USBTMC Table 2.
+func (instr *Instrument) encodeBulkHeaderPrefix(msgID msgID) [4]byte {
+	instr.nextbTag()
 	return [4]byte{
-		byte(msgId),
-		inst.bTag,
-		invertbTag(inst.bTag),
-		Reserved,
+		byte(msgID),
+		instr.bTag,
+		invertbTag(instr.bTag),
+		reservedField,
 	}
 }
 
-// Create the DEV_DEP_MSG_OUT Bulk-OUT Header with command specific content as
+// Create the devDepMsgOut Bulk-OUT Header with command specific content as
 // shown in USBTMC Table 3.
-func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom bool) [12]byte {
+func (instr *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom bool) [12]byte {
 	// Offset 0-3: See Table 1.
-	prefix := inst.encodeBulkHeaderPrefix(DEV_DEP_MSG_OUT)
+	prefix := instr.encodeBulkHeaderPrefix(devDepMsgOut)
 	// Offset 4-7: TransferSize
 	// Per USBTMC Table 3, the TransferSize is the "total number of USBTMC
 	// message data bytes to be sent in this USB transfer. This does not include
@@ -209,7 +217,7 @@ func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom
 	if eom {
 		bmTransferAttributes = byte(0x01)
 	}
-	// Offset 9-11: Reserved. Must be 0x000000.
+	// Offset 9-11: reservedField. Must be 0x000000.
 	return [12]byte{
 		prefix[0],
 		prefix[1],
@@ -220,17 +228,17 @@ func (inst *Instrument) createDevDepMsgOutBulkOutHeader(transferSize uint32, eom
 		packedTransferSize[2],
 		packedTransferSize[3],
 		bmTransferAttributes,
-		Reserved,
-		Reserved,
-		Reserved,
+		reservedField,
+		reservedField,
+		reservedField,
 	}
 }
 
-// Create the REQUEST_DEV_DEP_MSG_IN Bulk-OUT Header with command specific
+// Create the requestDevDepMsgIn Bulk-OUT Header with command specific
 // content as shown in USBTMC Table 4.
-func (inst *Instrument) createRequestDevDepMsgInBulkOutHeader(transferSize uint32) [12]byte {
+func (instr *Instrument) createRequestDevDepMsgInBulkOutHeader(transferSize uint32) [12]byte {
 	// Offset 0-3: See Table 1.
-	prefix := inst.encodeBulkHeaderPrefix(REQUEST_DEV_DEP_MSG_IN)
+	prefix := instr.encodeBulkHeaderPrefix(requestDevDepMsgIn)
 	// Offset 4-7: TransferSize
 	// Per USBTMC Table 4, the TransferSize is the "maximum number of USBTMC
 	// message data bytes to be sent in response to the command. This does not
@@ -243,15 +251,15 @@ func (inst *Instrument) createRequestDevDepMsgInBulkOutHeader(transferSize uint3
 	// Per USBTMC Table 4, D1 of bmTransferAttributes:
 	//   1 - "The Bulk-IN transfer must terminate on the specified TermChar. The
 	//       Host may only set this bit if the USBTMC interface indicates it
-	//       supports TermChar in the GET_CAPABILITIES response packet."
+	//       supports TermChar in the getCapabilities response packet."
 	//   0 - "The device must ignore TermChar."
 	// All other bits of bmTransferAttributes must be 0.
 	bmTransferAttributes := byte(0x00)
-	if inst.termCharEnabled {
+	if instr.termCharEnabled {
 		bmTransferAttributes = byte(0x02)
 	}
 	// Offset 9: TermChar
-	// Offset 10-11: Reserved. Must be 0x000000.
+	// Offset 10-11: reservedField. Must be 0x000000.
 	return [12]byte{
 		prefix[0],
 		prefix[1],
@@ -262,8 +270,8 @@ func (inst *Instrument) createRequestDevDepMsgInBulkOutHeader(transferSize uint3
 		packedTransferSize[2],
 		packedTransferSize[3],
 		bmTransferAttributes,
-		inst.termChar,
-		Reserved,
-		Reserved,
+		instr.termChar,
+		reservedField,
+		reservedField,
 	}
 }

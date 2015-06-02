@@ -6,6 +6,7 @@ import (
 	"github.com/truveris/gousb/usb"
 )
 
+// FindAllUsbtmcInterfaces seems to do way too much.
 func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 	hasUsbtmcInterface := false
 	switch {
@@ -42,11 +43,14 @@ func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 	return hasUsbtmcInterface
 }
 
+// FindVisaResourceName returns a pointer to a usb.Device given the
+// visaResourceName and Context.
 func FindVisaResourceName(visaResourceName string, c *usb.Context) (*usb.Device, error) {
 	devices, err := c.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
 	return devices[0], err
 }
 
+// FindUsbtmcFromResourceString needs a better comment.
 func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
 	visaResource, err := NewVisaResource(resourceString)
 	if err != nil {
@@ -60,7 +64,7 @@ func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descript
 	return func(desc *usb.Descriptor) bool {
 		hasUsbtmcInterface := false
 		switch {
-		case uint16(desc.Vendor) == visaResource.manufacturerId &&
+		case uint16(desc.Vendor) == visaResource.manufacturerID &&
 			uint16(desc.Product) == visaResource.modelCode &&
 			desc.Class == 0x00 && desc.SubClass == 0x00:
 			for _, config := range desc.Configs {

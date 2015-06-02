@@ -7,30 +7,32 @@ import (
 	"strings"
 )
 
+// VisaResource represents a VISA enabled piece of test equipment.
 type VisaResource struct {
 	resourceString string
 	interfaceType  string
 	boardIndex     uint16
-	manufacturerId uint16
+	manufacturerID uint16
 	modelCode      uint16
 	serialNumber   string
 	interfaceIndex uint16
 	resourceClass  string
 }
 
+// NewVisaResource creates a new VisaResource using the given VISA resourceString.
 func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 	visa = &VisaResource{
 		resourceString: resourceString,
 		interfaceType:  "",
 		boardIndex:     0,
-		manufacturerId: 0,
+		manufacturerID: 0,
 		modelCode:      0,
 		serialNumber:   "",
 		interfaceIndex: 0,
 		resourceClass:  "",
 	}
 	regString := `^(?P<interfaceType>[A-Za-z]+)(?P<boardIndex>\d*)::` +
-		`(?P<manufacturerId>[^\s:]+)::` +
+		`(?P<manufacturerID>[^\s:]+)::` +
 		`(?P<modelCode>[^\s:]+)` +
 		`(::(?P<serialNumber>[^\s:]+))?` +
 		`::(?P<resourceClass>[^\s:]+)$`
@@ -45,9 +47,8 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 
 	if strings.ToUpper(matchMap["interfaceType"]) != "USB" {
 		return visa, errors.New("visa: interface type was not usb")
-	} else {
-		visa.interfaceType = "USB"
 	}
+	visa.interfaceType = "USB"
 
 	if matchMap["boardIndex"] != "" {
 		boardIndex, err := strconv.ParseUint(matchMap["boardIndex"], 0, 16)
@@ -57,12 +58,12 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 		visa.boardIndex = uint16(boardIndex)
 	}
 
-	if matchMap["manufacturerId"] != "" {
-		manufacturerId, err := strconv.ParseUint(matchMap["manufacturerId"], 0, 16)
+	if matchMap["manufacturerID"] != "" {
+		manufacturerID, err := strconv.ParseUint(matchMap["manufacturerID"], 0, 16)
 		if err != nil {
-			return visa, errors.New("visa: manufacturerId error")
+			return visa, errors.New("visa: manufacturerID error")
 		}
-		visa.manufacturerId = uint16(manufacturerId)
+		visa.manufacturerID = uint16(manufacturerID)
 	}
 
 	if matchMap["modelCode"] != "" {
@@ -77,9 +78,8 @@ func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
 
 	if strings.ToUpper(matchMap["resourceClass"]) != "INSTR" {
 		return visa, errors.New("visa: resource class was not instr")
-	} else {
-		visa.resourceClass = "INSTR"
 	}
+	visa.resourceClass = "INSTR"
 
 	return visa, nil
 

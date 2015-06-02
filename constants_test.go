@@ -7,8 +7,8 @@ func TestRequestString(t *testing.T) {
 		request     bRequest
 		description string
 	}{
-		{INITIATE_ABORT_BULK_OUT, "Aborts a Bulk-OUT transfer."},
-		{READ_STATUS_BYTE, "Returns the IEEE 488 Status Byte."},
+		{initiateAbortBulkOut, "Aborts a Bulk-OUT transfer."},
+		{readStatusByte, "Returns the IEEE 488 Status Byte."},
 	}
 	for _, testCase := range testCases {
 		if testCase.request.String() != testCase.description {

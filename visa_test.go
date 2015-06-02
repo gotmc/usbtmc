@@ -10,7 +10,7 @@ func TestParsingVisaResourceString(t *testing.T) {
 		resourceString string
 		interfaceType  string
 		boardIndex     uint16
-		manufacturerId uint16
+		manufacturerID uint16
 		modelCode      uint16
 		serialNumber   string
 		interfaceIndex uint16
@@ -67,11 +67,11 @@ func TestParsingVisaResourceString(t *testing.T) {
 				testCase.resourceString,
 			)
 		}
-		if resource.manufacturerId != testCase.manufacturerId {
+		if resource.manufacturerID != testCase.manufacturerID {
 			t.Errorf(
-				"manufacturerId == %d, want %d for resource %s",
-				resource.manufacturerId,
-				testCase.manufacturerId,
+				"manufacturerID == %d, want %d for resource %s",
+				resource.manufacturerID,
+				testCase.manufacturerID,
 				testCase.resourceString,
 			)
 		}
