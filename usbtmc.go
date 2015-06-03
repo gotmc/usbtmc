@@ -142,8 +142,8 @@ func (instr *Instrument) String() string {
 	return instr.Device.Descriptor.SerialNumber
 }
 
-// Write writes the given buffer to the Instrument and returns the number of
-// bytes written along with an error code.
+// Write writes the given buffer to the Instrument using the bulk out endpoint
+// and returns the number of bytes written along with an error code.
 func (instr *Instrument) Write(buf []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer.
@@ -168,7 +168,12 @@ func (instr *Instrument) WriteString(s string) (n int, err error) {
 	return n, err
 }
 
+// Read creates and sends the header on the bulk out endpoint and then reads
+// from the bulk in endpoint.
 func (instr *Instrument) Read(p []byte) (n int, err error) {
+	// TODO(mdr): Should I pass in the header instead of creating it from p? That
+	// seems like it would be better for SRP, but I think that would break the
+	// golang Read() signature.
 	header := instr.createRequestDevDepMsgInBulkOutHeader(uint32(len(p)))
 	log.Printf("RequestDevDepMsg Header to write = %v", header)
 	n, err = instr.BulkOutEndpoint.Write(header[:])
