@@ -3,7 +3,6 @@ package usbtmc
 import (
 	"log"
 
-	"github.com/gotmc/visa"
 	"github.com/truveris/gousb/usb"
 )
 
@@ -53,20 +52,20 @@ func FindVisaResourceName(visaResourceName string, c *usb.Context) (*usb.Device,
 
 // FindUsbtmcFromResourceString needs a better comment.
 func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
-	visaResource, err := visa.NewResource(resourceString)
+	visaResource, err := NewVisaResource(resourceString)
 	if err != nil {
 		log.Fatal("Invalid visaResource")
 	}
 
-	if visaResource.InterfaceType != "USB" {
+	if visaResource.interfaceType != "USB" {
 		log.Fatal("Non-usb resource provided")
 	}
 
 	return func(desc *usb.Descriptor) bool {
 		hasUsbtmcInterface := false
 		switch {
-		case uint16(desc.Vendor) == visaResource.ManufacturerID &&
-			uint16(desc.Product) == visaResource.ModelCode &&
+		case uint16(desc.Vendor) == visaResource.manufacturerID &&
+			uint16(desc.Product) == visaResource.modelCode &&
 			desc.Class == 0x00 && desc.SubClass == 0x00:
 			for _, config := range desc.Configs {
 				for _, iface := range config.Interfaces {
