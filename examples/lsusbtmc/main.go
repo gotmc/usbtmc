@@ -32,7 +32,10 @@ func main() {
 	}
 
 	start = time.Now()
-	fg := ctx.NewInstrument("USB0::2391::1031::MY44027825::INSTR")
+	fg, err := ctx.NewInstrument("USB0::2391::1031::MY44035349::INSTR")
+	if err != nil {
+		log.Fatalf("NewInstrument error: %s", err)
+	}
 	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
 	start = time.Now()
 	fmt.Printf(
