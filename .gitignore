@@ -1,3 +1,6 @@
+# Ignore compiled examples
+examples/lsusbtmc/lsusbtmc
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
