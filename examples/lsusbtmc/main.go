@@ -36,6 +36,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("NewInstrument error: %s", err)
 	}
+	defer fg.Close()
 	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
 	start = time.Now()
 	fmt.Printf(
