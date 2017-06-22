@@ -55,17 +55,8 @@ func FindVisaResourceName(visaResourceName string, c *usb.Context) (*usb.Device,
 	return devices[0], err
 }
 
-// FindUsbtmcFromResourceString needs a better comment.
-func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
-	visaResource, err := NewVisaResource(resourceString)
-	if err != nil {
-		log.Fatal("Invalid visaResource")
-	}
-
-	if visaResource.interfaceType != "USB" {
-		log.Fatal("Non-usb resource provided")
-	}
-
+// FindUsbtmcFromResource needs a better comment.
+func FindUsbtmcFromResource(visaResource *VisaResource) func(desc *usb.Descriptor) bool {
 	return func(desc *usb.Descriptor) bool {
 		hasUsbtmcInterface := false
 		switch {
@@ -103,4 +94,17 @@ func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descript
 		}
 		return hasUsbtmcInterface
 	}
+}
+
+// FindUsbtmcFromResourceString needs a better comment.
+func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
+	visaResource, err := NewVisaResource(resourceString)
+	if err != nil {
+		return func(desc *usb.Descriptor) bool {
+			return false
+		}
+	}
+
+	return FindUsbtmcFromResource(visaResource)
+
 }

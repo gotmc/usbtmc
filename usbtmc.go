@@ -67,7 +67,11 @@ func (c *Context) NewInstrument(visaResourceName string) (*Instrument, error) {
 	var bulkInEndpointAddress uint8
 	var interruptInEndpointAddress uint8
 	start := time.Now()
-	devices, err := c.ctx.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
+	v, err := NewVisaResource(visaResourceName)
+	if err != nil {
+		return nil, err
+	}
+	devices, err := c.ctx.ListDevices(FindUsbtmcFromResource(v))
 	if err != nil {
 		return nil, err
 	}
