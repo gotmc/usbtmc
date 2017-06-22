@@ -8,6 +8,7 @@ package usbtmc
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"time"
 
@@ -58,19 +59,21 @@ type Instrument struct {
 
 // NewInstrument creates new USBTMC compliant device based on the given VISA
 // resource name.
-func (c *Context) NewInstrument(visaResourceName string) *Instrument {
-	// FIXME(mdr) Need to speed this up. Currently, it takes about 5s to create a
-	// new instrument.
+func (c *Context) NewInstrument(visaResourceName string) (*Instrument, error) {
 	var usbtmcConfig uint8
 	var usbtmcInterface uint8
 	var usbtmcSetup uint8
 	var bulkOutEndpointAddress uint8
 	var bulkInEndpointAddress uint8
 	var interruptInEndpointAddress uint8
-	// TODO(mdr) Need to handle the error potentially return by ListDevices
-	// FIXME(mdr) Need to handle error in case given a bad visaResource
 	start := time.Now()
-	devices, _ := c.ctx.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
+	devices, err := c.ctx.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
+	if err != nil {
+		return nil, err
+	}
+	if len(devices) == 0 {
+		return nil, fmt.Errorf("Didn't find usbtmc device for %s", visaResourceName)
+	}
 	device := devices[0]
 	log.Printf("%.2fs to get first USB device matching VisaResource\n", time.Since(start).Seconds())
 	start = time.Now()
@@ -123,7 +126,7 @@ func (c *Context) NewInstrument(visaResourceName string) *Instrument {
 
 	// TODO(mdr): Should I set the bTag to 1? Instead of storing bTag, should I
 	// store nextbTag, or maybe renamed this to lastbTag?
-	return &Instrument{
+	inst := Instrument{
 		Device:              device,
 		BulkInEndpoint:      bulkInEndpoint,
 		BulkOutEndpoint:     bulkOutEndpoint,
@@ -131,6 +134,7 @@ func (c *Context) NewInstrument(visaResourceName string) *Instrument {
 		termChar:            '\n',
 		termCharEnabled:     true,
 	}
+	return &inst, nil
 }
 
 // Close closes the Instrument.
