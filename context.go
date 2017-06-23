@@ -36,9 +36,9 @@ func (c *Context) Close() error {
 	return c.ctx.Close()
 }
 
-// NewInstrument creates new USBTMC compliant device based on the given VISA
+// NewDevice creates new USBTMC compliant device based on the given VISA
 // resource name.
-func (c *Context) NewInstrument(visaResourceName string) (*Instrument, error) {
+func (c *Context) NewDevice(visaResourceName string) (*Device, error) {
 	var usbtmcConfig uint8
 	var usbtmcInterface uint8
 	var usbtmcSetup uint8
@@ -109,13 +109,13 @@ func (c *Context) NewInstrument(visaResourceName string) (*Instrument, error) {
 
 	// TODO(mdr): Should I set the bTag to 1? Instead of storing bTag, should I
 	// store nextbTag, or maybe renamed this to lastbTag?
-	inst := Instrument{
-		Device:              device,
+	d := Device{
+		USBDevice:           device,
 		BulkInEndpoint:      bulkInEndpoint,
 		BulkOutEndpoint:     bulkOutEndpoint,
 		InterruptInEndpoint: interruptInEndpoint,
 		termChar:            '\n',
 		termCharEnabled:     true,
 	}
-	return &inst, nil
+	return &d, nil
 }

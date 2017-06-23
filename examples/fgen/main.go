@@ -32,18 +32,18 @@ func main() {
 	}
 
 	start = time.Now()
-	fg, err := ctx.NewInstrument("USB0::2391::1031::MY44035349::INSTR")
+	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035349::INSTR")
 	if err != nil {
-		log.Fatalf("NewInstrument error: %s", err)
+		log.Fatalf("NewDevice error: %s", err)
 	}
 	defer fg.Close()
 	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
 	start = time.Now()
 	fmt.Printf(
 		"Found the Arb Wave Gen S/N %s by Vendor ID %d with Product ID %d\n",
-		fg.Device.Descriptor.SerialNumber,
-		fg.Device.Descriptor.Vendor,
-		fg.Device.Descriptor.Product)
+		fg.USBDevice.Descriptor.SerialNumber,
+		fg.USBDevice.Descriptor.Vendor,
+		fg.USBDevice.Descriptor.Product)
 	// Send commands to waveform generator
 	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0")) // Write using byte slice
 	io.WriteString(fg, "burst:internal:period 0.112") // WriteString using io's Writer interface
@@ -67,6 +67,6 @@ func main() {
 	// log.Print(fg.Write("freq 2340"))
 	// log.Print(scope.Ask("*idn?"))
 	defer fg.Close()
-	fmt.Printf("Goodbye arbitrary waveform generator %s\n", fg.Device.Descriptor.SerialNumber)
+	fmt.Printf("Goodbye arbitrary waveform generator %s\n", fg.USBDevice.Descriptor.SerialNumber)
 
 }
