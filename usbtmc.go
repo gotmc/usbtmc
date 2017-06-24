@@ -75,6 +75,22 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
+// Query writes a SCPI command as a string and then returns the queried result
+// as a string.
+func (d *Device) Query(s string) (string, error) {
+	_, err := d.WriteString(s)
+	if err != nil {
+		return "", err
+	}
+	var b []byte
+	_, err = d.Read(b)
+	if err != nil {
+		return "", err
+	}
+	buf := bytes.NewBuffer(b)
+	return buf.ReadString(0xA)
+}
+
 func (d *Device) nextbTag() {
 	d.bTag = (d.bTag % 255) + 1
 }
