@@ -41,7 +41,7 @@ func (d *Device) Write(buf []byte) (n int, err error) {
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
 	header := d.createDevDepMsgOutBulkOutHeader(uint32(len(buf)), true)
-	log.Printf("DevDepMsgOutBulkOutHeader = %v", header)
+	// log.Printf("DevDepMsgOutBulkOutHeader = %v", header)
 	data := append(header[:], buf...)
 	if moduloFour := len(data) % 4; moduloFour > 0 {
 		numAlignment := 4 - moduloFour
@@ -49,8 +49,8 @@ func (d *Device) Write(buf []byte) (n int, err error) {
 		data = append(data, alignment...)
 	}
 	n, err = d.BulkOutEndpoint.Write(data)
-	log.Printf("Wrote %d bytes to BulkOutEndpoint", n)
-	log.Printf("BulkOutEndpoint data: %v", data)
+	// log.Printf("Wrote %d bytes to BulkOutEndpoint", n)
+	// log.Printf("BulkOutEndpoint data: %v", data)
 	return n, err
 }
 

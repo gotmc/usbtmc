@@ -8,7 +8,6 @@ package usbtmc
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/truveris/gousb/usb"
 )
@@ -45,7 +44,7 @@ func (c *Context) NewDevice(visaResourceName string) (*Device, error) {
 	var bulkOutEndpointAddress uint8
 	var bulkInEndpointAddress uint8
 	var interruptInEndpointAddress uint8
-	start := time.Now()
+	// start := time.Now()
 	v, err := NewVisaResource(visaResourceName)
 	if err != nil {
 		return nil, err
@@ -58,8 +57,8 @@ func (c *Context) NewDevice(visaResourceName string) (*Device, error) {
 		return nil, fmt.Errorf("Didn't find usbtmc device for %s", visaResourceName)
 	}
 	device := devices[0]
-	log.Printf("%.2fs to get first USB device matching VisaResource\n", time.Since(start).Seconds())
-	start = time.Now()
+	// log.Printf("%.2fs to get first USB device matching VisaResource\n", time.Since(start).Seconds())
+	// start = time.Now()
 	for _, config := range device.Descriptor.Configs {
 		for _, iface := range config.Interfaces {
 			for _, setup := range iface.Setups {
