@@ -20,14 +20,18 @@ func main() {
 	flag.Parse()
 
 	start := time.Now()
+	log.Println("Create new USBTMC context")
 	ctx, err := usbtmc.NewContext()
+	log.Println("Created new USBTMC context")
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
 	defer ctx.Close()
 
 	start = time.Now()
+	log.Println("Here")
 	fg, err := ctx.NewDeviceByVIDPID(0x957, 0x407)
+	log.Println("Boo")
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}

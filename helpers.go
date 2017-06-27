@@ -11,6 +11,12 @@ func invertbTag(bTag byte) byte {
 	return bTag ^ 0xff
 }
 
+// nextbTag returns the next bTag given the current bTag. Per the USBTMC
+// standard, "the Host must set bTag such that 1<=bTag<=255."
+func nextbTag(bTag byte) byte {
+	return (bTag % 255) + 1
+}
+
 // Create the devDepMsgOut Bulk-OUT Header with command specific content as
 // shown in USBTMC Table 3.
 func createDevDepMsgOutBulkOutHeader(bTag byte, transferSize uint32, eom bool) [12]byte {

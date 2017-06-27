@@ -21,10 +21,6 @@ type Device struct {
 	termCharEnabled bool
 }
 
-func (d *Device) nextbTag() {
-	d.bTag = (d.bTag % 255) + 1
-}
-
 // Write creates the appropriate USBMTC header, writes the header and data on
 // the bulk out endpoint, and returns the number of bytes written and any
 // errors.
@@ -32,7 +28,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
-	d.nextbTag()
+	d.bTag = nextbTag(d.bTag)
 	header := createDevDepMsgOutBulkOutHeader(d.bTag, uint32(len(p)), true)
 	data := append(header[:], p...)
 	if moduloFour := len(data) % 4; moduloFour > 0 {
@@ -46,7 +42,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 // Read creates and sends the header on the bulk out endpoint and then reads
 // from the bulk in endpoint per USBTMC standard.
 func (d *Device) Read(p []byte) (n int, err error) {
-	d.nextbTag()
+	d.bTag = nextbTag(d.bTag)
 	header := createRequestDevDepMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
 	log.Printf("RequestDevDepMsg Header to write = %v", header)
 	n, err = d.usbDevice.Write(header[:])
