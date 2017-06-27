@@ -10,10 +10,11 @@ import (
 	"log"
 
 	"github.com/gotmc/usbtmc"
+	"github.com/gotmc/usbtmc/driver"
 	"github.com/truveris/gousb/usb"
 )
 
-// Driver implements the visa.Driver interface.
+// TruverisDriver implements the visa.Driver interface.
 type TruverisDriver struct {
 }
 
@@ -22,40 +23,39 @@ func init() {
 	usbtmc.Register(&d)
 }
 
-// Context represents a libusb session/context.
-type Context struct {
+type truverisContext struct {
 	ctx *usb.Context
 }
 
 // NewContext creates a new libusb session/context.
-func (d Driver) NewContext() (*Context, error) {
-	c := &Context{
+func (d TruverisDriver) NewContext() (driver.Context, error) {
+	c := &truverisContext{
 		ctx: usb.NewContext(),
 	}
 	return c, nil
 }
 
 // Debug sets the debug level for the libusb session/context
-func (c *Context) Debug(level int) {
+func (c *truverisContext) Debug(level int) {
 	c.ctx.Debug(level)
 }
 
 // Close the libusb session/context.
-func (c *Context) Close() error {
+func (c *truverisContext) Close() error {
 	return c.ctx.Close()
 }
 
 // NewDeviceByVIDPID creates new USB device based on the given the
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
-func (c *Context) NewDeviceByVIDPID(VID, PID uint16) (*Device, error) {
+func (c *truverisContext) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 	var usbtmcConfig uint8
 	var usbtmcInterface uint8
 	var usbtmcSetup uint8
 	var bulkOutEndpointAddress uint8
 	var bulkInEndpointAddress uint8
 	var interruptInEndpointAddress uint8
-	devices, err := c.ctx.ListDevices(findDeviceByVIDPID(VID, PID))
+	devices, err := c.ctx.ListDevices(findDeviceByVIDPID(uint16(VID), uint16(PID)))
 	if err != nil {
 		return nil, err
 	}

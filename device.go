@@ -12,6 +12,8 @@ import (
 	"github.com/gotmc/usbtmc/driver"
 )
 
+// Device models a USBTMC device, which includes a USB device and the required
+// USBTMC attributes and methods.
 type Device struct {
 	usbDevice       driver.USBDevice
 	bTag            byte
@@ -58,6 +60,7 @@ func (d *Device) Close() error {
 	return d.usbDevice.Close()
 }
 
+// WriteString writes a string using the underlying USB device.
 func (d *Device) WriteString(s string) (n int, err error) {
 	return d.Write([]byte(s))
 }

@@ -7,10 +7,12 @@ package usbtmc
 
 import "github.com/gotmc/usbtmc/driver"
 
+// Context hold the USB context for the registered driver.
 type Context struct {
-	libusbContext *driver.Context
+	libusbContext driver.Context
 }
 
+// NewContext creates a new USB context using the registered driver.
 func NewContext() (*Context, error) {
 	var context *Context
 	ctx, err := libusbDriver.NewContext()
@@ -36,6 +38,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
 	return d, nil
 }
 
+// Close closes the USB context for the underlying USB driver.
 func (c *Context) Close() error {
 	return c.libusbContext.Close()
 }
