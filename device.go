@@ -7,6 +7,7 @@ package usbtmc
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"log"
 
@@ -74,4 +75,8 @@ func (d *Device) Close() error {
 // WriteString writes a string using the underlying USB device.
 func (d *Device) WriteString(s string) (n int, err error) {
 	return d.Write([]byte(s))
+}
+
+func (c *Device) Query(s string) (value string, err error) {
+	return "", errors.New("Please implement the Query method for Device.")
 }
