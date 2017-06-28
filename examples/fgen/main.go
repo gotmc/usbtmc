@@ -14,6 +14,7 @@ import (
 
 	"github.com/gotmc/usbtmc"
 	_ "github.com/gotmc/usbtmc/driver/truveris"
+	// _ "github.com/gotmc/usbtmc/driver/libusb"
 )
 
 func main() {
