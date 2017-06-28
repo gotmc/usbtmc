@@ -20,18 +20,14 @@ func main() {
 	flag.Parse()
 
 	start := time.Now()
-	log.Println("Create new USBTMC context")
 	ctx, err := usbtmc.NewContext()
-	log.Println("Created new USBTMC context")
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
 	defer ctx.Close()
 
 	start = time.Now()
-	log.Println("Here")
 	fg, err := ctx.NewDeviceByVIDPID(0x957, 0x407)
-	log.Println("Boo")
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
@@ -56,12 +52,12 @@ func main() {
 	bytesRead, err := fg.Read(buf[:])
 	log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
 	if err != nil {
-		log.Printf("Error reading: %s", err)
+		log.Printf("Error reading: %v", err)
+	} else {
+		// fmt.Printf("Read %d bytes [12:] = %s\n", bytesRead, buf[12:bytesRead])
+		// fmt.Printf("Read %d bytes [:12] = %v\n", bytesRead, buf[:12])
+		fmt.Printf("Read %d bytes [:] = %s\n", bytesRead, buf)
 	}
-	fmt.Printf("Read %d bytes = %s", bytesRead, buf[12:bytesRead])
-	fmt.Printf("Last rune read = %x\n", buf[bytesRead-1:bytesRead])
-	fmt.Printf("Last rune read = %q\n", buf[bytesRead-1:bytesRead])
-	fmt.Printf("Read %d bytes = %v\n", bytesRead, buf[:12])
 
 	// log.Print(fg.Write("freq 2340"))
 	// log.Print(scope.Ask("*idn?"))

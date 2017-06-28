@@ -28,11 +28,8 @@ type truverisContext struct {
 
 // NewContext creates a new libusb session/context.
 func (d TruverisDriver) NewContext() (driver.Context, error) {
-	log.Printf("Here")
 	var c truverisContext
 	c.ctx = usb.NewContext()
-	log.Printf("Created USB context %v", c.ctx)
-	log.Printf("Now here")
 	return &c, nil
 }
 
@@ -56,7 +53,6 @@ func (c *truverisContext) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, er
 	var bulkOutEndpointAddress uint8
 	var bulkInEndpointAddress uint8
 	var interruptInEndpointAddress uint8
-	log.Println("Getting closer")
 	devices, err := c.ctx.ListDevices(findDeviceByVIDPID(uint16(VID), uint16(PID)))
 	if err != nil {
 		return nil, err
@@ -93,6 +89,7 @@ func (c *truverisContext) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, er
 		}
 	}
 
+	// FIXME(mdr): Change from log.Fatal to returning an error.
 	bulkInEndpoint, err := device.OpenEndpoint(
 		usbtmcConfig, usbtmcInterface, usbtmcSetup, bulkInEndpointAddress)
 	if err != nil {

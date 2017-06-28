@@ -5,11 +5,7 @@
 
 package usbtmc
 
-import (
-	"log"
-
-	"github.com/gotmc/usbtmc/driver"
-)
+import "github.com/gotmc/usbtmc/driver"
 
 // Context hold the USB context for the registered driver.
 type Context struct {
@@ -21,15 +17,11 @@ type Context struct {
 func NewContext() (*Context, error) {
 	var context Context
 	context.driver = libusbDriver
-
-	log.Printf("Calling libusbDriver.NewContext()")
-	bar, err := libusbDriver.NewContext()
+	ctx, err := libusbDriver.NewContext()
 	if err != nil {
-		log.Printf("Hit an error")
 		return nil, err
 	}
-	context.libusbContext = bar
-	log.Printf("About to return")
+	context.libusbContext = ctx
 	return &context, nil
 }
 
@@ -37,11 +29,8 @@ func NewContext() (*Context, error) {
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
 func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
-	log.Println("Entered usbtmc.NewDeviceByVIDPID")
 	var d Device
-	log.Println("Inside usbtmc.NewDeviceByVIDPID created a *Device")
 	d.termChar = '\n'
-	log.Println("Inside usbtmc.NewDeviceByVIDPID set the termChar")
 	d.bTag = 1
 	d.termCharEnabled = true
 	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(VID, PID)
