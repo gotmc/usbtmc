@@ -28,7 +28,8 @@ func main() {
 	defer ctx.Close()
 
 	start = time.Now()
-	fg, err := ctx.NewDeviceByVIDPID(0x957, 0x407)
+	// fg, err := ctx.NewDeviceByVIDPID(0x957, 0x407)
+	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035849::INSTR")
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}

@@ -29,16 +29,35 @@ func NewContext() (*Context, error) {
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
 func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
-	var d Device
-	d.termChar = '\n'
-	d.bTag = 1
-	d.termCharEnabled = true
+	d := defaultDevice()
 	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(VID, PID)
 	if err != nil {
-		return &d, err
+		return d, err
 	}
 	d.usbDevice = usbDevice
-	return &d, nil
+	return d, nil
+}
+
+func (c *Context) NewDevice(address string) (*Device, error) {
+	d := defaultDevice()
+	v, err := NewVisaResource(address)
+	if err != nil {
+		return d, err
+	}
+	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(uint(v.manufacturerID), uint(v.modelCode))
+	if err != nil {
+		return d, err
+	}
+	d.usbDevice = usbDevice
+	return d, nil
+}
+
+func defaultDevice() *Device {
+	return &Device{
+		termChar:        '\n',
+		bTag:            1,
+		termCharEnabled: true,
+	}
 }
 
 // Close closes the USB context for the underlying USB driver.
