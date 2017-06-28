@@ -45,6 +45,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 func (d *Device) Read(p []byte) (n int, err error) {
 	// FIXME(mdr): Seems like I shouldn't use 1024 as a magic number or as a hard
 	// size limit.
+	usbtmcHeaderLen := 12
 	temp := make([]byte, 1024)
 	d.bTag = nextbTag(d.bTag)
 	header := createRequestDevDepMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
@@ -54,15 +55,15 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	log.Println("Foo")
 	// log.Printf("Read %d bytes on BulkInEndpoint", n)
 	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
-	if n < 12 {
+	if n < usbtmcHeaderLen {
 		return 0, err
 	}
 	reader := bytes.NewReader(temp)
-	n, err = reader.ReadAt(p, 12)
+	_, err = reader.ReadAt(p, int64(usbtmcHeaderLen))
 	if err != nil && err != io.EOF {
-		return n, err
+		return n - usbtmcHeaderLen, err
 	}
-	return n, nil
+	return n - usbtmcHeaderLen, nil
 }
 
 // Close closes the underlying USB device.
