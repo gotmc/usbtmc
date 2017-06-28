@@ -5,116 +5,62 @@
 
 package usbtmc
 
-import (
-	"fmt"
-	"log"
+import "github.com/gotmc/usbtmc/driver"
 
-	"github.com/truveris/gousb/usb"
-)
-
-// Context represents a libusb session/context.
+// Context hold the USB context for the registered driver.
 type Context struct {
-	ctx *usb.Context
+	driver        driver.Driver
+	libusbContext driver.Context
 }
 
-// NewContext creates a new libusb session/context.
-func NewContext() *Context {
-	c := &Context{
-		ctx: usb.NewContext(),
+// NewContext creates a new USB context using the registered driver.
+func NewContext() (*Context, error) {
+	var context Context
+	context.driver = libusbDriver
+	ctx, err := libusbDriver.NewContext()
+	if err != nil {
+		return nil, err
 	}
-	return c
+	context.libusbContext = ctx
+	return &context, nil
 }
 
-// Debug sets the debug level for the libusb session/context
-func (c *Context) Debug(level int) {
-	c.ctx.Debug(level)
+// NewDeviceByVIDPID creates new USBTMC compliant device based on the given the
+// vendor ID and product ID. If multiple USB devices matching the VID and PID
+// are found, only the first is returned.
+func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
+	d := defaultDevice()
+	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(VID, PID)
+	if err != nil {
+		return d, err
+	}
+	d.usbDevice = usbDevice
+	return d, nil
 }
 
-// Close the libusb session/context.
+func (c *Context) NewDevice(address string) (*Device, error) {
+	d := defaultDevice()
+	v, err := NewVisaResource(address)
+	if err != nil {
+		return d, err
+	}
+	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(uint(v.manufacturerID), uint(v.modelCode))
+	if err != nil {
+		return d, err
+	}
+	d.usbDevice = usbDevice
+	return d, nil
+}
+
+func defaultDevice() *Device {
+	return &Device{
+		termChar:        '\n',
+		bTag:            1,
+		termCharEnabled: true,
+	}
+}
+
+// Close closes the USB context for the underlying USB driver.
 func (c *Context) Close() error {
-	return c.ctx.Close()
-}
-
-// NewDevice creates new USBTMC compliant device based on the given VISA
-// resource name.
-func (c *Context) NewDevice(visaResourceName string) (*Device, error) {
-	var usbtmcConfig uint8
-	var usbtmcInterface uint8
-	var usbtmcSetup uint8
-	var bulkOutEndpointAddress uint8
-	var bulkInEndpointAddress uint8
-	var interruptInEndpointAddress uint8
-	// start := time.Now()
-	v, err := NewVisaResource(visaResourceName)
-	if err != nil {
-		return nil, err
-	}
-	devices, err := c.ctx.ListDevices(FindUsbtmcFromResource(v))
-	if err != nil {
-		return nil, err
-	}
-	if len(devices) == 0 {
-		return nil, fmt.Errorf("Didn't find usbtmc device for %s", visaResourceName)
-	}
-	device := devices[0]
-	// log.Printf("%.2fs to get first USB device matching VisaResource\n", time.Since(start).Seconds())
-	// start = time.Now()
-	for _, config := range device.Descriptor.Configs {
-		for _, iface := range config.Interfaces {
-			for _, setup := range iface.Setups {
-				if setup.IfClass == 0xfe && setup.IfSubClass == 0x03 {
-					usbtmcConfig = uint8(config.Config)
-					usbtmcInterface = uint8(iface.Number)
-					usbtmcSetup = uint8(setup.Number)
-					for _, endpoint := range setup.Endpoints {
-						endpointAttributes := endpoint.Attributes
-						endpointDirection := endpoint.Address & uint8(usb.ENDPOINT_DIR_MASK)
-						endpointType := endpointAttributes & uint8(usb.TRANSFER_TYPE_MASK)
-						if endpointType == uint8(usb.TRANSFER_TYPE_BULK) {
-							if endpointDirection == uint8(usb.ENDPOINT_DIR_IN) {
-								bulkInEndpointAddress = endpoint.Address | uint8(usb.ENDPOINT_DIR_IN)
-							} else if endpointDirection == uint8(usb.ENDPOINT_DIR_OUT) {
-								bulkOutEndpointAddress = endpoint.Address | uint8(usb.ENDPOINT_DIR_OUT)
-							}
-						} else if endpointType == uint8(usb.TRANSFER_TYPE_INTERRUPT) {
-							if endpointDirection == uint8(usb.ENDPOINT_DIR_IN) {
-								interruptInEndpointAddress = endpoint.Address | uint8(usb.ENDPOINT_DIR_IN)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	bulkInEndpoint, err := device.OpenEndpoint(
-		usbtmcConfig, usbtmcInterface, usbtmcSetup, bulkInEndpointAddress)
-	if err != nil {
-		log.Fatal("Error opening bulkInEndpoint")
-	}
-
-	bulkOutEndpoint, err := device.OpenEndpoint(
-		usbtmcConfig, usbtmcInterface, usbtmcSetup, bulkOutEndpointAddress)
-	if err != nil {
-		log.Fatal("Error opening bulkOutEndpoint")
-	}
-
-	// TODO(mdr): Need to make the interruptInEndpoint optional
-	interruptInEndpoint, err := device.OpenEndpoint(
-		usbtmcConfig, usbtmcInterface, usbtmcSetup, interruptInEndpointAddress)
-	if err != nil {
-		log.Fatal("Error opening interruptInEndpoint")
-	}
-
-	// TODO(mdr): Should I set the bTag to 1? Instead of storing bTag, should I
-	// store nextbTag, or maybe renamed this to lastbTag?
-	d := Device{
-		USBDevice:           device,
-		BulkInEndpoint:      bulkInEndpoint,
-		BulkOutEndpoint:     bulkOutEndpoint,
-		InterruptInEndpoint: interruptInEndpoint,
-		termChar:            '\n',
-		termCharEnabled:     true,
-	}
-	return &d, nil
+	return c.libusbContext.Close()
 }

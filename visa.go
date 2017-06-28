@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+// TODO(mdr): Should parsing a VISA address string into a VISA resource be in
+// the usbtmc package or does this functionality belong in the visa package?
+// Dogmatic vs. Pragmatic?
+
 // VisaResource represents a VISA enabled piece of test equipment.
 type VisaResource struct {
 	resourceString string

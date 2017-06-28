@@ -5,6 +5,12 @@
 
 package usbtmc
 
-func invertbTag(bTag byte) byte {
-	return bTag ^ 0xff
+import "github.com/gotmc/usbtmc/driver"
+
+// Driver is the registered driver
+var libusbDriver driver.Driver
+
+// Register is called to register a driver for use by the program.
+func Register(d driver.Driver) {
+	libusbDriver = d
 }

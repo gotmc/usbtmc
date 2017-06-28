@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style license that
 // can be found in the LICENSE.txt file for the project.
 
-package usbtmc
+package truveris
 
 import (
 	"log"
@@ -12,7 +12,7 @@ import (
 )
 
 // FindAllUsbtmcInterfaces seems to do way too much.
-func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
+func findAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 	hasUsbtmcInterface := false
 	switch {
 	case desc.Class == 0x00 && desc.SubClass == 0x00:
@@ -48,20 +48,13 @@ func FindAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 	return hasUsbtmcInterface
 }
 
-// FindVisaResourceName returns a pointer to a usb.Device given the
-// visaResourceName and Context.
-func FindVisaResourceName(visaResourceName string, c *usb.Context) (*usb.Device, error) {
-	devices, err := c.ListDevices(FindUsbtmcFromResourceString(visaResourceName))
-	return devices[0], err
-}
-
 // FindUsbtmcFromResource needs a better comment.
-func FindUsbtmcFromResource(visaResource *VisaResource) func(desc *usb.Descriptor) bool {
+func findDeviceByVIDPID(VID, PID uint16) func(desc *usb.Descriptor) bool {
 	return func(desc *usb.Descriptor) bool {
 		hasUsbtmcInterface := false
 		switch {
-		case uint16(desc.Vendor) == visaResource.manufacturerID &&
-			uint16(desc.Product) == visaResource.modelCode &&
+		case uint16(desc.Vendor) == VID &&
+			uint16(desc.Product) == PID &&
 			desc.Class == 0x00 && desc.SubClass == 0x00:
 			for _, config := range desc.Configs {
 				for _, iface := range config.Interfaces {
@@ -94,17 +87,4 @@ func FindUsbtmcFromResource(visaResource *VisaResource) func(desc *usb.Descripto
 		}
 		return hasUsbtmcInterface
 	}
-}
-
-// FindUsbtmcFromResourceString needs a better comment.
-func FindUsbtmcFromResourceString(resourceString string) func(desc *usb.Descriptor) bool {
-	visaResource, err := NewVisaResource(resourceString)
-	if err != nil {
-		return func(desc *usb.Descriptor) bool {
-			return false
-		}
-	}
-
-	return FindUsbtmcFromResource(visaResource)
-
 }
