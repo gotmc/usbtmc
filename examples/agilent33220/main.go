@@ -7,7 +7,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"time"
@@ -47,6 +46,8 @@ func main() {
 	fg.WriteString("burst:internal:period 0.112")     // WriteString
 	fg.WriteString("burst:ncycles 131")
 	fg.WriteString("burst:state on")
+	log.Println("Configured 2340 Hz sine burst.")
+
 	fg.WriteString("*idn?")
 
 	start = time.Now()
@@ -56,9 +57,7 @@ func main() {
 	if err != nil {
 		log.Printf("Error reading: %v", err)
 	} else {
-		// fmt.Printf("Read %d bytes [12:] = %s\n", bytesRead, buf[12:bytesRead])
-		// fmt.Printf("Read %d bytes [:12] = %v\n", bytesRead, buf[:12])
-		fmt.Printf("Read %d bytes [:] = %s\n", bytesRead, buf)
+		log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
 	}
 
 	// log.Print(fg.Write("freq 2340"))
