@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -50,11 +49,8 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	temp := make([]byte, 1024)
 	d.bTag = nextbTag(d.bTag)
 	header := createRequestDevDepMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
-	// log.Printf("RequestDevDepMsg Header to write = %v", header)
 	n, err = d.usbDevice.Write(header[:])
 	n, err = d.usbDevice.Read(temp)
-	log.Println("Foo")
-	// log.Printf("Read %d bytes on BulkInEndpoint", n)
 	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
 	if n < usbtmcHeaderLen {
 		return 0, err
