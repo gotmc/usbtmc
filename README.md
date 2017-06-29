@@ -40,6 +40,14 @@ libusb hardware interface libraries available:
 - [github.com/gotmc/libusb][golibusb] -- Not working currently
 - [github.com/google/gousb][gousb] -- Not yet implemented
 
+You'll need to install **one** of the above libraries using:
+
+```bash
+$ go get github.com/truveris/gousb/usb
+$ go get github.com/gotmc/libusb
+$ go get github.com/google/gousb/usb
+```
+
 To indicate which libusb interface library should be used, include
 **one** of the following blank imports:
 
