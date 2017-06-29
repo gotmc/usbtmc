@@ -1,8 +1,5 @@
 language: go
 
-os:
-  - osx
-
 go:
   - 1.7
   - 1.8
