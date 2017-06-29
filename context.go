@@ -38,6 +38,8 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
 	return d, nil
 }
 
+// NewDevice creates a new USBTMC compliant device based on the given VISA
+// address string.
 func (c *Context) NewDevice(address string) (*Device, error) {
 	d := defaultDevice()
 	v, err := NewVisaResource(address)

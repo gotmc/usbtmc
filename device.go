@@ -73,6 +73,8 @@ func (d *Device) WriteString(s string) (n int, err error) {
 	return d.Write([]byte(s))
 }
 
-func (c *Device) Query(s string) (value string, err error) {
-	return "", errors.New("Please implement the Query method for Device.")
+// Query writes the given string to the USBTMC device and returns the returned
+// value as a string.
+func (d *Device) Query(s string) (value string, err error) {
+	return "", errors.New("please implement the Query method for Device")
 }

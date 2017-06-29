@@ -11,6 +11,8 @@ import (
 	"github.com/gotmc/libusb"
 )
 
+// Device models the libusb device that will form the basis of the USBTMC
+// compliant device.
 type Device struct {
 	Timeout           int
 	USBDevice         *libusb.Device
