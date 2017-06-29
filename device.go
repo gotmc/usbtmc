@@ -30,7 +30,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
 	d.bTag = nextbTag(d.bTag)
-	header := createDevDepMsgOutBulkOutHeader(d.bTag, uint32(len(p)), true)
+	header := encodeBulkOutHeader(d.bTag, uint32(len(p)), true)
 	data := append(header[:], p...)
 	if moduloFour := len(data) % 4; moduloFour > 0 {
 		numAlignment := 4 - moduloFour
@@ -48,7 +48,7 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	usbtmcHeaderLen := 12
 	temp := make([]byte, 1024)
 	d.bTag = nextbTag(d.bTag)
-	header := createRequestDevDepMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
+	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
 	n, err = d.usbDevice.Write(header[:])
 	n, err = d.usbDevice.Read(temp)
 	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes

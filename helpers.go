@@ -7,19 +7,31 @@ package usbtmc
 
 import "encoding/binary"
 
-func invertbTag(bTag byte) byte {
-	return bTag ^ 0xff
-}
-
 // nextbTag returns the next bTag given the current bTag. Per the USBTMC
 // standard, "the Host must set bTag such that 1<=bTag<=255."
 func nextbTag(bTag byte) byte {
 	return (bTag % 255) + 1
 }
 
+// intertbTag returns the one's complement (inverse) of the given bTag.
+func invertbTag(bTag byte) byte {
+	return bTag ^ 0xff
+}
+
+// Create the first four bytes of the USBTMC meassage Bulk-OUT Header as shown
+// in USBTMC Table 1. The msgID value must match USBTMC Table 2.
+func encodeBulkHeaderPrefix(bTag byte, msgID msgID) [4]byte {
+	return [4]byte{
+		byte(msgID),
+		bTag,
+		invertbTag(bTag),
+		reservedField,
+	}
+}
+
 // Create the devDepMsgOut Bulk-OUT Header with command specific content as
 // shown in USBTMC Table 3.
-func createDevDepMsgOutBulkOutHeader(bTag byte, transferSize uint32, eom bool) [12]byte {
+func encodeBulkOutHeader(bTag byte, transferSize uint32, eom bool) [12]byte {
 	// Offset 0-3: See Table 1.
 	prefix := encodeBulkHeaderPrefix(bTag, devDepMsgOut)
 	// Offset 4-7: TransferSize
@@ -58,20 +70,9 @@ func createDevDepMsgOutBulkOutHeader(bTag byte, transferSize uint32, eom bool) [
 	}
 }
 
-// Create the first four bytes of the USBTMC meassage Bulk-OUT Header as shown
-// in USBTMC Table 1. The msgID value must match USBTMC Table 2.
-func encodeBulkHeaderPrefix(bTag byte, msgID msgID) [4]byte {
-	return [4]byte{
-		byte(msgID),
-		bTag,
-		invertbTag(bTag),
-		reservedField,
-	}
-}
-
 // Create the requestDevDepMsgIn Bulk-OUT Header with command specific
 // content as shown in USBTMC Table 4.
-func createRequestDevDepMsgInBulkOutHeader(bTag byte, transferSize uint32, termCharEnabled bool, termChar byte) [12]byte {
+func encodeMsgInBulkOutHeader(bTag byte, transferSize uint32, termCharEnabled bool, termChar byte) [12]byte {
 	// Offset 0-3: See Table 1.
 	prefix := encodeBulkHeaderPrefix(bTag, requestDevDepMsgIn)
 	// Offset 4-7: TransferSize
