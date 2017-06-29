@@ -38,7 +38,7 @@ libusb hardware interface libraries available:
 
 - [github.com/truveris/gousb][truveris]
 - [github.com/gotmc/libusb][golibusb] -- Not working currently
-- [github.com/google/gousb][gousb] -- Not working currently
+- [github.com/google/gousb][gousb] -- Not yet implemented
 
 To indicate which libusb interface library should be used, include
 **one** of the following blank imports:

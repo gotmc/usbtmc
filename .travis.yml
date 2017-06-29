@@ -4,5 +4,10 @@ go:
   - 1.7
   - 1.8
 
+install:
+  - go get github.com/gotmc/libusb
+  - go get github.com/truveris/gousb
+  - go get github.com/google/gousb
+
 script:
   - go test -v ./...
