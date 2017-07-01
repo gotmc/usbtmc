@@ -7,7 +7,6 @@ package truveris
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gotmc/usbtmc"
 	"github.com/gotmc/usbtmc/driver"
@@ -90,24 +89,23 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 		}
 	}
 
-	// FIXME(mdr): Change from log.Fatal to returning an error.
 	bulkInEndpoint, err := device.OpenEndpoint(
 		usbtmcConfig, usbtmcInterface, usbtmcSetup, bulkInEndpointAddress)
 	if err != nil {
-		log.Fatal("Error opening bulkInEndpoint")
+		return nil, fmt.Errorf("error opening bulkInEndpoint: %s", err)
 	}
 
 	bulkOutEndpoint, err := device.OpenEndpoint(
 		usbtmcConfig, usbtmcInterface, usbtmcSetup, bulkOutEndpointAddress)
 	if err != nil {
-		log.Fatal("Error opening bulkOutEndpoint")
+		return nil, fmt.Errorf("Error opening bulkOutEndpoint: %s", err)
 	}
 
 	// TODO(mdr): Need to make the interruptInEndpoint optional
 	interruptInEndpoint, err := device.OpenEndpoint(
 		usbtmcConfig, usbtmcInterface, usbtmcSetup, interruptInEndpointAddress)
 	if err != nil {
-		log.Fatal("Error opening interruptInEndpoint")
+		return nil, fmt.Errorf("Error opening interruptInEndpoint: %s", err)
 	}
 
 	d := Device{
