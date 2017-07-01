@@ -48,6 +48,7 @@ func (d *Device) Read(p []byte) (n int, err error) {
 // Query writes a SCPI command as a string and then returns the queried result
 // as a string.
 func (d *Device) Query(s string) (string, error) {
+	log.Println("Inside driver/truveris/device.go/Query(s string)")
 	n, err := d.BulkOutEndpoint.Write([]byte(s))
 	if err != nil {
 		return "huh", err

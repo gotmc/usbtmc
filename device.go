@@ -8,6 +8,9 @@ package usbtmc
 import (
 	"bytes"
 	"io"
+	"log"
+	"strings"
+	"time"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -74,6 +77,40 @@ func (d *Device) WriteString(s string) (n int, err error) {
 
 // Query writes the given string to the USBTMC device and returns the returned
 // value as a string.
-func (d *Device) Query(s string) (value string, err error) {
-	return d.usbDevice.Query(s)
+func (d *Device) Query(p []byte) (value string, err error) {
+	log.Println("Inside device.go/Query(s string)")
+	// Write the SCPI command on the BulkOUT endpoint
+	d.bTag = nextbTag(d.bTag)
+	header := encodeBulkOutHeader(d.bTag, uint32(len(p)), true)
+	data := append(header[:], p...)
+	if moduloFour := len(data) % 4; moduloFour > 0 {
+		numAlignment := 4 - moduloFour
+		alignment := bytes.Repeat([]byte{0x00}, numAlignment)
+		data = append(data, alignment...)
+	}
+	n, err := d.usbDevice.Write(data)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("Wrote %d on BulkOUT endpoint.", n)
+
+	time.Sleep(1 * time.Second)
+
+	// Read the result from the SCPI query on the BulkIN endpoint
+	usbtmcHeaderLen := 12
+	temp := make([]byte, 1024)
+	d.bTag = nextbTag(d.bTag)
+	header = encodeMsgInBulkOutHeader(d.bTag, uint32(len(temp)), d.termCharEnabled, d.termChar)
+	_, err = d.usbDevice.Write(header[:])
+	n, err = d.usbDevice.Read(temp)
+	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
+	if n < usbtmcHeaderLen {
+		return "", err
+	}
+	reader := bytes.NewReader(temp)
+	_, err = reader.ReadAt(p, int64(usbtmcHeaderLen))
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+	return strings.TrimSpace(string(temp[:(n - usbtmcHeaderLen)])), nil
 }
