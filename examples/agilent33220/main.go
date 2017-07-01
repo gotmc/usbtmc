@@ -46,23 +46,24 @@ func main() {
 	fg.WriteString("burst:internal:period 0.112")     // WriteString
 	fg.WriteString("burst:ncycles 131")
 	fg.WriteString("burst:state on")
-	log.Println("Configured 2340 Hz sine burst.")
 
-	fg.WriteString("*idn?")
+	// fg.WriteString("*idn?")
 
-	start = time.Now()
-	var buf [1024]byte
-	bytesRead, err := fg.Read(buf[:])
-	log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
+	// start = time.Now()
+	// var buf [1024]byte
+	// bytesRead, err := fg.Read(buf[:])
+	// log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
+	// if err != nil {
+	// log.Printf("Error reading: %v", err)
+	// } else {
+	// log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
+	// }
+
+	name, err := fg.Query("*idn?")
 	if err != nil {
-		log.Printf("Error reading: %v", err)
-	} else {
-		log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
+		log.Printf("What? %s", err)
 	}
-
-	// log.Print(fg.Write("freq 2340"))
-	// log.Print(scope.Ask("*idn?"))
+	log.Printf("%s\n", name)
 	defer fg.Close()
-	// fmt.Printf("Goodbye arbitrary waveform generator %s\n", fg.USBDevice.Descriptor.SerialNumber)
 
 }

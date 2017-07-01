@@ -45,7 +45,7 @@ You'll need to install **one** of the above libraries using:
 ```bash
 $ go get github.com/truveris/gousb/usb
 $ go get github.com/gotmc/libusb
-$ go get github.com/google/gousb/usb
+$ go get github.com/google/gousb
 ```
 
 To indicate which libusb interface library should be used, include

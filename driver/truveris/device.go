@@ -6,7 +6,7 @@
 package truveris
 
 import (
-	"bytes"
+	"log"
 
 	"github.com/truveris/gousb/usb"
 )
@@ -48,15 +48,16 @@ func (d *Device) Read(p []byte) (n int, err error) {
 // Query writes a SCPI command as a string and then returns the queried result
 // as a string.
 func (d *Device) Query(s string) (string, error) {
-	_, err := d.WriteString(s)
+	n, err := d.BulkOutEndpoint.Write([]byte(s))
 	if err != nil {
-		return "", err
+		return "huh", err
 	}
-	var b []byte
-	_, err = d.Read(b)
+	log.Printf("query wrote %d bytes on bulk out endpoint", n)
+	var b [1024]byte
+	n, err = d.Read(b[:])
+	log.Printf("query read %d bytes on bulk in endpoint", n)
 	if err != nil {
-		return "", err
+		return "uh-oh", err
 	}
-	buf := bytes.NewBuffer(b)
-	return buf.ReadString(0xA)
+	return "done", nil
 }

@@ -7,7 +7,6 @@ package usbtmc
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
 	"github.com/gotmc/usbtmc/driver"
@@ -76,5 +75,5 @@ func (d *Device) WriteString(s string) (n int, err error) {
 // Query writes the given string to the USBTMC device and returns the returned
 // value as a string.
 func (d *Device) Query(s string) (value string, err error) {
-	return "", errors.New("please implement the Query method for Device")
+	return d.usbDevice.Query(s)
 }
