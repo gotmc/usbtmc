@@ -13,6 +13,7 @@ before_install:
 install:
   - go get github.com/gotmc/libusb
   - go get github.com/truveris/gousb/usb
+  - go get github.com/google/gousb
 
 script:
   - go test -v ./...
