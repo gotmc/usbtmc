@@ -6,16 +6,13 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"time"
 
 	"github.com/gotmc/usbtmc"
-	_ "github.com/gotmc/usbtmc/driver/truveris"
-	// _ "github.com/gotmc/usbtmc/driver/libusb"
+	_ "github.com/gotmc/usbtmc/driver/google"
 )
 
 func main() {
@@ -34,7 +31,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
-	defer fg.Close()
 	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
 	start = time.Now()
 	// fmt.Printf(
@@ -52,7 +48,7 @@ func main() {
 	// Works to write *idn? to the fg and then read the response.
 	fg.WriteString("*idn?\n")
 	start = time.Now()
-	var buf [1024]byte
+	var buf [512]byte
 	bytesRead, err := fg.Read(buf[:])
 	log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
 	if err != nil {
@@ -63,7 +59,7 @@ func main() {
 
 	// This works
 	fg.WriteString("VOLT?\n")
-	var volts [1024]byte
+	var volts [512]byte
 	bytesRead, err = fg.Read(volts[:])
 	log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
 	if err != nil {
@@ -72,19 +68,20 @@ func main() {
 		log.Printf("Read %d bytes for \"VOLT?\" = %s\n", bytesRead, volts)
 	}
 
+	log.Println("Not yet at bufio.NewScanner")
 	// This works
-	fg.WriteString("FREQ?\n")
-	scanner := bufio.NewScanner(fg)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
+	// fg.WriteString("FREQ?\n")
+	// scanner := bufio.NewScanner(fg)
+	// for scanner.Scan() {
+	// log.Printf("WriteString(\"FREQ?\\n\") scanner.Text result: %s", scanner.Text())
+	// }
+	// log.Println("I'm here.")
 
-	_, err = fg.Query([]byte("FREQ?\n"))
-	if err != nil {
-		log.Printf("query error: %s", err)
-	}
-	// log.Printf("FREQ? %s", foo)
-
-	defer fg.Close()
+	// result, err := fg.Query("FREQ?\n")
+	// if err != nil {
+	// log.Printf("query error: %s", err)
+	// }
+	// log.Printf("Query result: %s", result)
+	fg.Close()
 
 }

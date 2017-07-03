@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"io"
 	"log"
-	"strings"
-	"time"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -31,6 +29,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
+	// log.Println("device.go/Write()")
 	d.bTag = nextbTag(d.bTag)
 	header := encodeBulkOutHeader(d.bTag, uint32(len(p)), true)
 	data := append(header[:], p...)
@@ -39,6 +38,7 @@ func (d *Device) Write(p []byte) (n int, err error) {
 		alignment := bytes.Repeat([]byte{0x00}, numAlignment)
 		data = append(data, alignment...)
 	}
+	// log.Println("About to run d.usbDevice.Write(data)")
 	return d.usbDevice.Write(data)
 }
 
@@ -48,7 +48,7 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	// FIXME(mdr): Seems like I shouldn't use 1024 as a magic number or as a hard
 	// size limit.
 	usbtmcHeaderLen := 12
-	temp := make([]byte, 1024)
+	temp := make([]byte, 512)
 	d.bTag = nextbTag(d.bTag)
 	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
 	n, err = d.usbDevice.Write(header[:])
@@ -67,6 +67,7 @@ func (d *Device) Read(p []byte) (n int, err error) {
 
 // Close closes the underlying USB device.
 func (d *Device) Close() error {
+	log.Printf("Starting to close %s from device.go/Close()", d)
 	return d.usbDevice.Close()
 }
 
@@ -77,40 +78,11 @@ func (d *Device) WriteString(s string) (n int, err error) {
 
 // Query writes the given string to the USBTMC device and returns the returned
 // value as a string.
-func (d *Device) Query(p []byte) (value string, err error) {
-	log.Println("Inside device.go/Query(s string)")
-	// Write the SCPI command on the BulkOUT endpoint
-	d.bTag = nextbTag(d.bTag)
-	header := encodeBulkOutHeader(d.bTag, uint32(len(p)), true)
-	data := append(header[:], p...)
-	if moduloFour := len(data) % 4; moduloFour > 0 {
-		numAlignment := 4 - moduloFour
-		alignment := bytes.Repeat([]byte{0x00}, numAlignment)
-		data = append(data, alignment...)
-	}
-	n, err := d.usbDevice.Write(data)
+func (d *Device) Query(s string) (string, error) {
+	// log.Println("Inside device.go/Query(s string)")
+	_, err := d.WriteString(s)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Wrote %d on BulkOUT endpoint.", n)
-
-	time.Sleep(1 * time.Second)
-
-	// Read the result from the SCPI query on the BulkIN endpoint
-	usbtmcHeaderLen := 12
-	temp := make([]byte, 1024)
-	d.bTag = nextbTag(d.bTag)
-	header = encodeMsgInBulkOutHeader(d.bTag, uint32(len(temp)), d.termCharEnabled, d.termChar)
-	_, err = d.usbDevice.Write(header[:])
-	n, err = d.usbDevice.Read(temp)
-	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
-	if n < usbtmcHeaderLen {
-		return "", err
-	}
-	reader := bytes.NewReader(temp)
-	_, err = reader.ReadAt(p, int64(usbtmcHeaderLen))
-	if err != nil && err != io.EOF {
-		return "", err
-	}
-	return strings.TrimSpace(string(temp[:(n - usbtmcHeaderLen)])), nil
+	return "", nil
 }

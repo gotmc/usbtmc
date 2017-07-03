@@ -5,11 +5,7 @@
 
 package libusb
 
-import (
-	"bytes"
-
-	"github.com/gotmc/libusb"
-)
+import "github.com/gotmc/libusb"
 
 // Device models the libusb device that will form the basis of the USBTMC
 // compliant device.
@@ -58,20 +54,4 @@ func (d *Device) Read(p []byte) (n int, err error) {
 		len(p),
 		d.Timeout,
 	)
-}
-
-// Query writes a SCPI command as a string and then returns the queried result
-// as a string.
-func (d *Device) Query(s string) (string, error) {
-	_, err := d.WriteString(s)
-	if err != nil {
-		return "", err
-	}
-	var b []byte
-	_, err = d.Read(b)
-	if err != nil {
-		return "", err
-	}
-	buf := bytes.NewBuffer(b)
-	return buf.ReadString(0xA)
 }

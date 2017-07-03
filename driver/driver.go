@@ -25,5 +25,4 @@ type USBDevice interface {
 	Write(p []byte) (n int, err error)
 	WriteString(s string) (n int, err error)
 	Read(p []byte) (n int, err error)
-	Query(s string) (string, error)
 }

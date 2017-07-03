@@ -7,6 +7,7 @@ package libusb
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gotmc/libusb"
 	"github.com/gotmc/usbtmc"
@@ -22,27 +23,27 @@ func init() {
 	usbtmc.Register(&Driver{})
 }
 
-type libusbContext struct {
+type Context struct {
 	ctx *libusb.Context
 }
 
 // NewContext creates a new libusb session/context.
 func (d Driver) NewContext() (driver.Context, error) {
-	var c libusbContext
+	var c Context
 	ctx, err := libusb.NewContext()
 	c.ctx = ctx
 	return &c, err
 }
 
 // Close the libusb session/context.
-func (c *libusbContext) Close() error {
+func (c *Context) Close() error {
 	return c.ctx.Close()
 }
 
 // NewDeviceByVIDPID creates new USB device based on the given the
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
-func (c *libusbContext) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
+func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 	dev, dh, err := c.ctx.OpenDeviceWithVendorProduct(uint16(VID), uint16(PID))
 	if err != nil {
 		return nil, err
@@ -56,11 +57,13 @@ func (c *libusbContext) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed getting active config: %s", err)
 	}
+	log.Printf("Grabbed active config: %v", configDescriptor)
 	firstDescriptor := configDescriptor.SupportedInterfaces[0].InterfaceDescriptors[0]
 	err = dh.ClaimInterface(0)
 	if err != nil {
 		return nil, fmt.Errorf("error claiming USB interface: %s", err)
 	}
+	log.Println("Claimed interface 0")
 	bulkOutput := firstDescriptor.EndpointDescriptors[0]
 	bulkInput := firstDescriptor.EndpointDescriptors[1]
 	interruptEndpoint := firstDescriptor.EndpointDescriptors[2]
