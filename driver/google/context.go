@@ -6,7 +6,7 @@
 package google
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/google/gousb"
 	"github.com/gotmc/usbtmc"
@@ -55,7 +55,6 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 		// Returning true means the device should be opened.
 		return desc.Vendor == vid && desc.Product == pid
 	})
-	log.Printf("Found %d devices", len(devs))
 	// All returned devices are now open and will need to be closed.
 	for i, d := range devs {
 		if i != 0 {
@@ -63,23 +62,15 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 		}
 	}
 	if err != nil {
-		log.Fatalf("OpenDevices(): %v", err)
+		return nil, err
 	}
 	if len(devs) == 0 {
-		log.Fatalf("no devices found matching VID %s and PID %s", vid, pid)
+		return nil, fmt.Errorf("no devices found matching VID %s and PID %s", vid, pid)
 	}
 
-	log.Printf("Found %d USB devices.", len(devs))
 	// Pick the first device found.
 	dev := devs[0]
 
-	log.Printf("Device Vendor ID = %s, Product ID = %s",
-		dev.Desc.Vendor,
-		dev.Desc.Product,
-	)
-	log.Printf("Found %s device", dev)
-
-	log.Printf("Device class %x, subclass %x", dev.Desc.Class, dev.Desc.SubClass)
 	// Switch to configuration #0
 	activeConfig, err := dev.ActiveConfigNum()
 	if err != nil {
@@ -92,34 +83,31 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 	var bulkIn *gousb.InEndpoint
 	var bulkOut *gousb.OutEndpoint
 	var intIn *gousb.InEndpoint
-	var intf *gousb.Interface
-	log.Printf("Found %d interfaces", len(cfg.Desc.Interfaces))
+	var intx *gousb.Interface
 	// Loop through the interfaces
 	for _, interfaceDesc := range cfg.Desc.Interfaces {
-		log.Printf("Found %d interfaces", len(cfg.Desc.Interfaces))
+		// TODO(mdr): I should probably check this interface or config to confirm
+		// it meets the USBTMC requirements.
 		intf, err := cfg.Interface(interfaceDesc.Number, 0)
 		if err != nil {
-			log.Printf("err: %s")
+			return nil, err
 		}
+		intx = intf
 		// Loop through all the endpoints on this interface
-		for j, ep := range intf.Setting.Endpoints {
-			log.Printf("Endpoint idx %d = %s", j, ep)
+		for _, ep := range intf.Setting.Endpoints {
 			if ep.Direction == gousb.EndpointDirectionOut && ep.TransferType == gousb.TransferTypeBulk {
-				log.Printf("Found BulkOut endpoint #%d on interface %d", ep.Number, interfaceDesc.Number)
 				bulkOut, err = intf.OutEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
 				}
 			}
 			if ep.Direction == gousb.EndpointDirectionIn && ep.TransferType == gousb.TransferTypeBulk {
-				log.Printf("Found BulkOut endpoint #%d on interface %d", ep.Number, interfaceDesc.Number)
 				bulkIn, err = intf.InEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
 				}
 			}
 			if ep.Direction == gousb.EndpointDirectionIn && ep.TransferType == gousb.TransferTypeInterrupt {
-				log.Printf("Found BulkOut endpoint #%d on interface %d", ep.Number, interfaceDesc.Number)
 				intIn, err = intf.InEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
@@ -130,7 +118,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 
 	d := Device{
 		dev:                 dev,
-		intf:                intf,
+		intf:                intx,
 		cfg:                 cfg,
 		BulkInEndpoint:      bulkIn,
 		BulkOutEndpoint:     bulkOut,

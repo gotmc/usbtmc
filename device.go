@@ -8,7 +8,6 @@ package usbtmc
 import (
 	"bytes"
 	"io"
-	"log"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -67,7 +66,6 @@ func (d *Device) Read(p []byte) (n int, err error) {
 
 // Close closes the underlying USB device.
 func (d *Device) Close() error {
-	log.Printf("Starting to close %s from device.go/Close()", d)
 	return d.usbDevice.Close()
 }
 

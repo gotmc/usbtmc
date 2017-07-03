@@ -23,6 +23,7 @@ type Device struct {
 
 // Close closes the Device.
 func (d *Device) Close() error {
+	d.intf.Close()
 	err := d.cfg.Close()
 	if err != nil {
 		return err

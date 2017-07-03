@@ -39,6 +39,8 @@ func main() {
 	// fg.USBDevice.Descriptor.Vendor,
 	// fg.USBDevice.Descriptor.Product)
 	// Send commands to waveform generator
+	// fg.WriteString("*CLS\n")
+	fg.WriteString("burst:state off\n")
 	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0\n")) // Write using byte slice
 	io.WriteString(fg, "burst:internal:period 0.112\n") // WriteString using io's Writer interface
 	fg.WriteString("burst:internal:period 0.112\n")     // WriteString
@@ -68,7 +70,6 @@ func main() {
 		log.Printf("Read %d bytes for \"VOLT?\" = %s\n", bytesRead, volts)
 	}
 
-	log.Println("Not yet at bufio.NewScanner")
 	// This works
 	// fg.WriteString("FREQ?\n")
 	// scanner := bufio.NewScanner(fg)
@@ -82,6 +83,8 @@ func main() {
 	// log.Printf("query error: %s", err)
 	// }
 	// log.Printf("Query result: %s", result)
-	fg.Close()
-
+	err = fg.Close()
+	if err != nil {
+		log.Printf("Error closing device: %s", err)
+	}
 }
