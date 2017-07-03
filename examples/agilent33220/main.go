@@ -31,14 +31,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
+	defer fg.Close()
 	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
 	start = time.Now()
-	// fmt.Printf(
-	// "Found the Arb Wave Gen S/N %s by Vendor ID %d with Product ID %d\n",
-	// fg.USBDevice.Descriptor.SerialNumber,
-	// fg.USBDevice.Descriptor.Vendor,
-	// fg.USBDevice.Descriptor.Product)
-	// Send commands to waveform generator
 	// fg.WriteString("*CLS\n")
 	fg.WriteString("burst:state off\n")
 	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0\n")) // Write using byte slice
@@ -83,8 +78,4 @@ func main() {
 	// log.Printf("query error: %s", err)
 	// }
 	// log.Printf("Query result: %s", result)
-	err = fg.Close()
-	if err != nil {
-		log.Printf("Error closing device: %s", err)
-	}
 }
