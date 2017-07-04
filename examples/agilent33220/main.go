@@ -6,7 +6,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -17,22 +16,20 @@ import (
 )
 
 func main() {
-	flag.Parse()
 
+	// Create new USBTMC context and new device.
 	start := time.Now()
 	ctx, err := usbtmc.NewContext()
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
-
-	start = time.Now()
-	// fg, err := ctx.NewDeviceByVIDPID(0x957, 0x407)
 	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035849::INSTR")
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
-	log.Printf("%.2fs to setup instrument\n", time.Since(start).Seconds())
-	start = time.Now()
+	log.Printf("%.2fs to create new device.\n", time.Since(start).Seconds())
+
+	// Configure function generator
 	fg.WriteString("*CLS\n")
 	fg.WriteString("burst:state off\n")
 	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0\n")) // Write using byte slice
@@ -41,27 +38,7 @@ func main() {
 	fg.WriteString("burst:ncycles 131\n")
 	fg.WriteString("burst:state on\n")
 
-	// Trying to read *idn? two times in a row without recompiling causes an
-	// error and hangs on the read. Hwoever, it works every other time, so I've
-	// commented this out for now.  Works to write *idn? to the fg and then read
-	// the response.
-	// log.Println("Start of *idn? write & read")
-	// fg.WriteString("*idn?\n")
-	// log.Println("Wrote *idn? to fgen.")
-	// start = time.Now()
-	// // TODO(mdr): Instead of using 512 magic number, I should read the maximum
-	// // buffer size for the bulk in endpoint from the USB device.
-	// var buf [512]byte
-	// log.Println("About to read 512 bytes from buffer.")
-	// bytesRead, err := fg.Read(buf[:])
-	// log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
-	// if err != nil {
-	// log.Printf("Error reading: %v", err)
-	// } else {
-	// log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
-	// }
-
-	// This works
+	// Query using a write and then a read.
 	queries := []string{"volt", "freq", "volt:offs", "volt:unit"}
 	for _, q := range queries {
 		ws := fmt.Sprintf("%s?\n", q)
@@ -75,6 +52,18 @@ func main() {
 		}
 	}
 
+	// Query using the query method
+	for _, q := range queries {
+		ws := fmt.Sprintf("%s?\n", q)
+		s, err := fg.Query(ws)
+		if err != nil {
+			log.Printf("Error reading: %v", err)
+		} else {
+			log.Printf("Query %s? = %s\n", q, s)
+		}
+	}
+
+	// Close the function generator and USBTMC context and check for errors.
 	err = fg.Close()
 	if err != nil {
 		log.Printf("error closing fg: %s", err)
