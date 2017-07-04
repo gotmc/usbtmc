@@ -7,7 +7,9 @@ package usbtmc
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"log"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -44,14 +46,22 @@ func (d *Device) Write(p []byte) (n int, err error) {
 // Read creates and sends the header on the bulk out endpoint and then reads
 // from the bulk in endpoint per USBTMC standard.
 func (d *Device) Read(p []byte) (n int, err error) {
+	log.Println("device.go/Read()")
+	return d.readKeepHeader(p)
+}
+
+func (d *Device) readRemoveHeader(p []byte) (n int, err error) {
 	// FIXME(mdr): Seems like I shouldn't use 1024 as a magic number or as a hard
 	// size limit.
+	log.Println("In device.go/Read()")
 	usbtmcHeaderLen := 12
 	temp := make([]byte, 512)
 	d.bTag = nextbTag(d.bTag)
 	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
 	n, err = d.usbDevice.Write(header[:])
+	log.Println("Wrote the header.")
 	n, err = d.usbDevice.Read(temp)
+	log.Println("Read from USB device.")
 	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
 	if n < usbtmcHeaderLen {
 		return 0, err
@@ -62,6 +72,15 @@ func (d *Device) Read(p []byte) (n int, err error) {
 		return n - usbtmcHeaderLen, err
 	}
 	return n - usbtmcHeaderLen, nil
+}
+
+func (d *Device) readKeepHeader(p []byte) (n int, err error) {
+	d.bTag = nextbTag(d.bTag)
+	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
+	log.Println("device.go/readKeepHeader()")
+	_, err = d.usbDevice.Write(header[:])
+	log.Println("Wrote header in device.go/readKeepHeader()")
+	return d.usbDevice.Read(p)
 }
 
 // Close closes the underlying USB device.
@@ -82,5 +101,13 @@ func (d *Device) Query(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "", nil
+	p := make([]byte, 512)
+	log.Println("Here")
+	n, err := d.Read(p)
+	if err != nil {
+		return "", err
+	}
+	s = fmt.Sprintf("%s", p[:n])
+	p = nil
+	return s, nil
 }
