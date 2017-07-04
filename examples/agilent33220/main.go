@@ -41,32 +41,33 @@ func main() {
 	fg.WriteString("burst:ncycles 131\n")
 	fg.WriteString("burst:state on\n")
 
-	// Works to write *idn? to the fg and then read the response.
-	log.Println("Start of *idn? write & read")
-	fg.WriteString("*idn?\n")
-	log.Println("Wrote *idn? to fgen.")
-	start = time.Now()
-	// TODO(mdr): Instead of using 512 magic number, I should read the maximum
-	// buffer size for the bulk in endpoint from the USB device.
-	var buf [512]byte
-	log.Println("About to read 512 bytes from buffer.")
-	bytesRead, err := fg.Read(buf[:])
-	log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
-	if err != nil {
-		log.Printf("Error reading: %v", err)
-	} else {
-		log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
-	}
+	// Trying to read *idn? two times in a row without recompiling causes an
+	// error and hangs on the read. Hwoever, it works every other time, so I've
+	// commented this out for now.  Works to write *idn? to the fg and then read
+	// the response.
+	// log.Println("Start of *idn? write & read")
+	// fg.WriteString("*idn?\n")
+	// log.Println("Wrote *idn? to fgen.")
+	// start = time.Now()
+	// // TODO(mdr): Instead of using 512 magic number, I should read the maximum
+	// // buffer size for the bulk in endpoint from the USB device.
+	// var buf [512]byte
+	// log.Println("About to read 512 bytes from buffer.")
+	// bytesRead, err := fg.Read(buf[:])
+	// log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
+	// if err != nil {
+	// log.Printf("Error reading: %v", err)
+	// } else {
+	// log.Printf("Read %d bytes for \"*idn?\" = %s\n", bytesRead, buf)
+	// }
 
 	// This works
 	queries := []string{"volt", "freq", "volt:offs", "volt:unit"}
 	for _, q := range queries {
-		log.Printf("Start of %s? write & read.", q)
 		ws := fmt.Sprintf("%s?\n", q)
 		fg.WriteString(ws)
 		var p [512]byte
-		bytesRead, err = fg.Read(p[:])
-		log.Printf("%.2fs to read %d bytes\n", time.Since(start).Seconds(), bytesRead)
+		bytesRead, err := fg.Read(p[:])
 		if err != nil {
 			log.Printf("Error reading: %v", err)
 		} else {

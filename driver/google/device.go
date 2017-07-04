@@ -38,8 +38,6 @@ func (d *Device) String() string {
 
 // Write writes to the USB device's bulk out endpoint.
 func (d *Device) Write(p []byte) (n int, err error) {
-	// log.Println("driver/google/device.go/Write()")
-	// log.Printf("d *Device = %q", d)
 	return d.BulkOutEndpoint.Write(p)
 }
 

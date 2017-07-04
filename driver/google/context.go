@@ -34,7 +34,7 @@ func (d Driver) NewContext() (driver.Context, error) {
 }
 
 // Debug sets the debug level for the libusb session/context
-func (c *Context) Debug(level int) {
+func (c *Context) SetDebugLevel(level int) {
 	c.ctx.Debug(level)
 }
 

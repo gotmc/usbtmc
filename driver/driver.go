@@ -14,6 +14,7 @@ type Driver interface {
 // Context defines the behavior required for USBTMC drivers.
 type Context interface {
 	Close() error
+	SetDebugLevel(level int)
 	NewDeviceByVIDPID(VID, PID uint) (USBDevice, error)
 	// NewDeviceBySerial(sn string) (USBDevice, error)
 }
