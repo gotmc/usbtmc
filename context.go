@@ -66,3 +66,7 @@ func defaultDevice() *Device {
 func (c *Context) Close() error {
 	return c.libusbContext.Close()
 }
+
+func (c *Context) SetDebugLevel(level int) {
+	c.libusbContext.SetDebugLevel(level)
+}

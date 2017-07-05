@@ -23,6 +23,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
+	ctx.SetDebugLevel(4)
+
 	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035849::INSTR")
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
@@ -48,20 +50,12 @@ func main() {
 		if err != nil {
 			log.Printf("Error reading: %v", err)
 		} else {
-			log.Printf("Read %d bytes for %s? = %s\n", bytesRead, q, p)
+			log.Printf("Read %d bytes for %s? = %s", bytesRead, q, p)
 		}
 	}
 
 	// Query using the query method
-	for _, q := range queries {
-		ws := fmt.Sprintf("%s?\n", q)
-		s, err := fg.Query(ws)
-		if err != nil {
-			log.Printf("Error reading: %v", err)
-		} else {
-			log.Printf("Query %s? = %s\n", q, s)
-		}
-	}
+	queryRange(fg, queries)
 
 	// Close the function generator and USBTMC context and check for errors.
 	err = fg.Close()
@@ -71,5 +65,17 @@ func main() {
 	err = ctx.Close()
 	if err != nil {
 		log.Printf("Error closing context: %s", err)
+	}
+}
+
+func queryRange(fg *usbtmc.Device, r []string) {
+	for _, q := range r {
+		ws := fmt.Sprintf("%s?", q)
+		s, err := fg.Query(ws)
+		if err != nil {
+			log.Printf("Error reading: %v", err)
+		} else {
+			log.Printf("Query %s? = %s", q, s)
+		}
 	}
 }
