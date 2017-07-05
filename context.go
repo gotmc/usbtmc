@@ -67,6 +67,8 @@ func (c *Context) Close() error {
 	return c.libusbContext.Close()
 }
 
+// SetDebugLevel sets the debug level for the underlying USB device using the
+// given integer.
 func (c *Context) SetDebugLevel(level int) {
 	c.libusbContext.SetDebugLevel(level)
 }

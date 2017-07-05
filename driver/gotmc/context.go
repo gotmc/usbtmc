@@ -23,6 +23,7 @@ func init() {
 	usbtmc.Register(&Driver{})
 }
 
+// Context models libusb context and implements the driver.Context interface.
 type Context struct {
 	ctx *libusb.Context
 }
@@ -33,6 +34,11 @@ func (d Driver) NewContext() (driver.Context, error) {
 	ctx, err := libusb.NewContext()
 	c.ctx = ctx
 	return &c, err
+}
+
+// SetDebugLevel sets the debug level for the libusb session/context
+func (c *Context) SetDebugLevel(level int) {
+	c.ctx.SetDebug(libusb.LogLevel(level))
 }
 
 // Close the libusb session/context.
