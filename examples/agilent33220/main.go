@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
-	ctx.SetDebugLevel(4)
+	ctx.SetDebugLevel(1)
 
 	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035849::INSTR")
 	if err != nil {

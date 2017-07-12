@@ -28,7 +28,6 @@ func findAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 							desc.Vendor,
 							desc.Product,
 						)
-						log.Printf("--> %s, %s", config, setup)
 					case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 01:
 						hasUsbtmcInterface = true
 						log.Printf(
@@ -37,7 +36,6 @@ func findAllUsbtmcInterfaces(desc *usb.Descriptor) bool {
 							desc.Vendor,
 							desc.Product,
 						)
-						log.Printf("--> %s, %s", config, setup)
 					}
 				}
 			}
@@ -68,7 +66,6 @@ func findDeviceByVIDPID(VID, PID uint16) func(desc *usb.Descriptor) bool {
 								desc.Vendor,
 								desc.Product,
 							)
-							log.Printf("--> %s, %s", config, setup)
 						case setup.IfClass == 0xfe && setup.IfSubClass == 0x03 && setup.IfProtocol == 01:
 							hasUsbtmcInterface = true
 							log.Printf(
@@ -77,7 +74,6 @@ func findDeviceByVIDPID(VID, PID uint16) func(desc *usb.Descriptor) bool {
 								desc.Vendor,
 								desc.Product,
 							)
-							log.Printf("--> %s, %s", config, setup)
 						}
 					}
 				}
