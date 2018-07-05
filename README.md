@@ -42,7 +42,7 @@ libusb hardware interface libraries available:
 - [github.com/google/gousb][gousb] -- Partially working: Common to fail
   every other time the program is run. Not sure what causes that.
 
-You'll need to install **one** of the above libraries using:
+You'll need to install ***one*** of the above libraries using:
 
 ```bash
 $ go get github.com/truveris/gousb/usb
@@ -51,7 +51,7 @@ $ go get github.com/google/gousb
 ```
 
 To indicate which libusb interface library should be used, include
-**one** of the following blank imports:
+***one*** of the following blank imports:
 
 ```go
 import _ "github.com/gotmc/usbtmc/driver/truveris"
