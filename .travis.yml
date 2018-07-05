@@ -4,16 +4,17 @@ os:
   - osx
 
 go:
-  - 1.7
-  - 1.8
+  - "1.8.x"
+  - "1.9.x"
+  - "1.10.x"
+
+script:
+  - go test -v ./...
 
 before_install:
-  brew install libusb
+  - brew upgrade libusb
 
 install:
   - go get github.com/gotmc/libusb
   - go get github.com/truveris/gousb/usb
   - go get github.com/google/gousb
-
-script:
-  - go test -v ./...
