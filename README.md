@@ -2,9 +2,10 @@
 Go library to communicate with a USB Test and Measurement Class (USBTMC)
 enabled USB device.
 
-[![GoDoc][godoc image]][godoc link]
-[![Build Status][travis image]][travis link]
-[![License Badge][license image]][LICENSE.txt]
+[![GoDoc][godoc badge]][godoc link]
+[![Go Report Card][report badge]][report card]
+[![Build Status][travis badge]][travis link]
+[![License Badge][license badge]][LICENSE.txt]
 
 ## Overview
 
@@ -38,7 +39,8 @@ libusb hardware interface libraries available:
 
 - [github.com/truveris/gousb][truveris]
 - [github.com/gotmc/libusb][golibusb] -- Not working currently
-- [github.com/google/gousb][gousb] -- Not yet implemented
+- [github.com/google/gousb][gousb] -- Partially working: Common to fail
+  every other time the program is run. Not sure what causes that.
 
 You'll need to install **one** of the above libraries using:
 
@@ -95,16 +97,18 @@ functionality, maintainability, or reliability.
 [usbtmc][gousbtmc] is released under the MIT license. Please see the
 [LICENSE.txt][] file for more information.
 
-[godoc image]: https://godoc.org/github.com/gotmc/usbtmc?status.svg
+[godoc badge]: https://godoc.org/github.com/gotmc/usbtmc?status.svg
 [godoc link]: https://godoc.org/github.com/gotmc/usbtmc
 [golibusb]: https://github.com/gotmc/libusb
 [gousb]: https://github.com/google/gousb
 [libusb]: http://libusb.info
 [LICENSE.txt]: https://github.com/gotmc/libusb/blob/master/LICENSE.txt
-[license image]: https://img.shields.io/badge/license-MIT-blue.svg
+[license badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [pull request]: https://help.github.com/articles/using-pull-requests
+[report badge]: https://goreportcard.com/badge/github.com/gotmc/usbtmc
+[report card]: https://goreportcard.com/report/github.com/gotmc/usbtmc
 [Scott Chacon]: http://scottchacon.com/about.html
-[travis image]: http://img.shields.io/travis/gotmc/usbtmc/master.svg
+[travis badge]: http://img.shields.io/travis/gotmc/usbtmc/master.svg
 [travis link]: https://travis-ci.org/gotmc/usbtmc
 [truveris]: https://github.com/truveris/gousb
 [usbtmc]: http://www.usb.org/developers/docs/devclass_docs/
