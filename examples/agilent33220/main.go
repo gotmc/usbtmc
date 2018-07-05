@@ -36,7 +36,6 @@ func main() {
 	fg.WriteString("burst:state off\n")
 	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0\n")) // Write using byte slice
 	io.WriteString(fg, "burst:internal:period 0.112\n") // WriteString using io's Writer interface
-	fg.WriteString("burst:internal:period 0.112\n")     // WriteString
 	fg.WriteString("burst:ncycles 131\n")
 	fg.WriteString("burst:state on\n")
 
