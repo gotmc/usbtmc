@@ -6,6 +6,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +16,22 @@ import (
 	_ "github.com/gotmc/usbtmc/driver/google"
 )
 
+var (
+	debugLevel uint
+)
+
+func init() {
+	const (
+		defaultLevel = 1
+		debugUsage   = "USB debug level"
+	)
+	flag.UintVar(&debugLevel, "debug", defaultLevel, debugUsage)
+	flag.UintVar(&debugLevel, "d", defaultLevel, debugUsage+" (shorthand)")
+}
+
 func main() {
+	// Parse the config flags to determine the config JSON filename
+	flag.Parse()
 
 	// Create new USBTMC context and new device.
 	start := time.Now()
@@ -23,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating new USB context: %s", err)
 	}
-	ctx.SetDebugLevel(1)
+	ctx.SetDebugLevel(int(debugLevel))
 
 	fg, err := ctx.NewDevice("USB0::2391::1031::MY44035849::INSTR")
 	if err != nil {
@@ -44,12 +60,12 @@ func main() {
 	for _, q := range queries {
 		ws := fmt.Sprintf("%s?\n", q)
 		fg.WriteString(ws)
-		var p [512]byte
-		bytesRead, err := fg.Read(p[:])
+		p := make([]byte, 512)
+		bytesRead, err := fg.Read(p)
 		if err != nil {
 			log.Printf("Error reading: %v", err)
 		} else {
-			log.Printf("Read %d bytes for %s? = %s", bytesRead, q, p)
+			log.Printf("Read %d bytes for %s? = %s", bytesRead, q, p[:bytesRead])
 		}
 	}
 
