@@ -76,9 +76,10 @@ func (d *Device) Close() error {
 	return d.usbDevice.Close()
 }
 
-// WriteString writes a string using the underlying USB device.
+// WriteString writes a string using the underlying USB device. A newline
+// character is automatically added to the end of the string.
 func (d *Device) WriteString(s string) (n int, err error) {
-	return d.Write([]byte(s))
+	return d.Write([]byte(s + "\n"))
 }
 
 // Query writes the given string to the USBTMC device and returns the returned

@@ -45,21 +45,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
-	log.Printf("%.2fs to create new device.\n", time.Since(start).Seconds())
+	log.Printf("%.2fs to create new device.", time.Since(start).Seconds())
 
 	// Configure function generator
-	fg.WriteString("*CLS\n")
-	fg.WriteString("burst:state off\n")
-	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0\n")) // Write using byte slice
-	io.WriteString(fg, "burst:internal:period 0.112\n") // WriteString using io's Writer interface
-	fg.WriteString("burst:ncycles 131\n")
-	fg.WriteString("burst:state on\n")
+	fg.WriteString("*CLS")
+	fg.WriteString("burst:state off")
+	fg.Write([]byte("apply:sinusoid 2340, 0.1, 0.0")) // Write using byte slice
+	io.WriteString(fg, "burst:internal:period 0.112") // WriteString using io's Writer interface
+	fg.WriteString("burst:ncycles 131")
+	fg.WriteString("burst:state on")
+
+	queries := []string{"volt", "freq", "volt:offs", "volt:unit"}
 
 	// Query using a write and then a read.
-	queries := []string{"volt", "freq", "volt:offs", "volt:unit"}
 	for _, q := range queries {
-		ws := fmt.Sprintf("%s?\n", q)
-		fg.WriteString(ws)
+		fg.WriteString(fmt.Sprintf("%s?", q))
 		p := make([]byte, 512)
 		bytesRead, err := fg.Read(p)
 		if err != nil {
@@ -85,8 +85,7 @@ func main() {
 
 func queryRange(fg *usbtmc.Device, r []string) {
 	for _, q := range r {
-		ws := fmt.Sprintf("%s?", q)
-		s, err := fg.Query(ws)
+		s, err := fg.Query(fmt.Sprintf("%s?", q))
 		if err != nil {
 			log.Printf("Error reading: %v", err)
 		} else {
