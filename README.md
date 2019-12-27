@@ -37,10 +37,9 @@ To use the [usbtmc][gousbtmc] package, you must register which Go-based
 that provides generic access to USB devices." There are three Go-based
 libusb hardware interface libraries available:
 
+- [github.com/google/gousb][gousb]
 - [github.com/truveris/gousb][truveris]
 - [github.com/gotmc/libusb][golibusb] -- Not working currently
-- [github.com/google/gousb][gousb] -- Partially working: Common to fail
-  every other time the program is run. Not sure what causes that.
 
 You'll need to install ***one*** of the above libraries using:
 
