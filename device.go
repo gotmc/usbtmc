@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -77,15 +78,27 @@ func (d *Device) Close() error {
 }
 
 // WriteString writes a string using the underlying USB device. A newline
-// character is automatically added to the end of the string.
+// terminator is not automatically added.
 func (d *Device) WriteString(s string) (n int, err error) {
-	return d.Write([]byte(s + "\n"))
+	return d.Write([]byte(s))
+}
+
+// Command sends the SCPI/ASCII command to the underlying USB device. A newline
+// character is automatically added to the end of the string.
+func (d *Device) Command(format string, a ...interface{}) error {
+	cmd := format
+	if a != nil {
+		cmd = fmt.Sprintf(format, a...)
+	}
+	_, err := d.Write([]byte(strings.TrimSpace(cmd) + "\n"))
+	return err
 }
 
 // Query writes the given string to the USBTMC device and returns the returned
-// value as a string.
+// value as a string. A newline character is automatically added to the query
+// command sent to the instrument.
 func (d *Device) Query(s string) (string, error) {
-	_, err := d.WriteString(s)
+	err := d.Command(s)
 	if err != nil {
 		return "", err
 	}
