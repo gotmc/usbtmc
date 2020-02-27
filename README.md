@@ -34,18 +34,16 @@ $ go get github.com/gotmc/usbtmc
 
 To use the [usbtmc][gousbtmc] package, you must register which Go-based
 [libusb][] interface library should be used.  [libusb][] is "a C library
-that provides generic access to USB devices." There are three Go-based
+that provides generic access to USB devices." There are two Go-based
 libusb hardware interface libraries available:
 
 - [github.com/google/gousb][gousb]
-- [github.com/truveris/gousb][truveris]
-- [github.com/gotmc/libusb][golibusb] -- Not working currently
+- [github.com/gotmc/libusb][golibusb] — Not working currently
 
 You'll need to install ***one*** of the above libraries using:
 
 ```bash
 $ go get -v github.com/google/gousb
-$ go get -v github.com/truveris/gousb/usb
 $ go get -v github.com/gotmc/libusb
 ```
 
@@ -54,7 +52,6 @@ To indicate which libusb interface library should be used, include
 
 ```go
 import _ "github.com/gotmc/usbtmc/driver/google"
-import _ "github.com/gotmc/usbtmc/driver/truveris"
 import _ "github.com/gotmc/usbtmc/driver/libusb"
 ```
 
@@ -109,6 +106,5 @@ functionality, maintainability, or reliability.
 [Scott Chacon]: http://scottchacon.com/about.html
 [travis badge]: http://img.shields.io/travis/gotmc/usbtmc/master.svg
 [travis link]: https://travis-ci.org/gotmc/usbtmc
-[truveris]: https://github.com/truveris/gousb
 [usbtmc]: http://www.usb.org/developers/docs/devclass_docs/
 [gousbtmc]: https://github.com/gotmc/usbtmc
