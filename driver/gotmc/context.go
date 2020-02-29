@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style license that
 // can be found in the LICENSE.txt file for the project.
 
-package libusb
+package gotmc
 
 import (
 	"fmt"
@@ -70,6 +70,9 @@ func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
 		return nil, fmt.Errorf("error claiming USB interface: %s", err)
 	}
 	log.Println("Claimed interface 0")
+	log.Printf("Found %d endpoint descriptors", len(firstDescriptor.EndpointDescriptors))
+	// FIXME(mdr): Probably not a good idea to blindly assume these endpoints are
+	// always in this order.
 	bulkOutput := firstDescriptor.EndpointDescriptors[0]
 	bulkInput := firstDescriptor.EndpointDescriptors[1]
 	interruptEndpoint := firstDescriptor.EndpointDescriptors[2]

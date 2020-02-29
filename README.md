@@ -44,7 +44,7 @@ You'll need to install ***one*** of the above libraries using:
 
 ```bash
 $ go get -v github.com/google/gousb
-$ go get -v github.com/gotmc/libusb
+$ go get -v github.com/gotmc/gotmc
 ```
 
 To indicate which libusb interface library should be used, include
@@ -52,7 +52,7 @@ To indicate which libusb interface library should be used, include
 
 ```go
 import _ "github.com/gotmc/usbtmc/driver/google"
-import _ "github.com/gotmc/usbtmc/driver/libusb"
+import _ "github.com/gotmc/usbtmc/driver/gotmc"
 ```
 
 ## Documentation
