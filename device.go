@@ -90,7 +90,7 @@ func (d *Device) Command(format string, a ...interface{}) error {
 	if a != nil {
 		cmd = fmt.Sprintf(format, a...)
 	}
-	_, err := d.Write([]byte(strings.TrimSpace(cmd) + "\n"))
+	_, err := d.WriteString(strings.TrimSpace(cmd) + "\n")
 	return err
 }
 
