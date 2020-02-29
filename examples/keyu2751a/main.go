@@ -39,37 +39,31 @@ func main() {
 	}
 	ctx.SetDebugLevel(int(debugLevel))
 
-	sw, err := ctx.NewDeviceByVIDPID(2391, 15896)
+	// On power up, the U2751A shows PID 15896 (0x3E18), and I can't communicate
+	// properly. After running the Agilent Measurement Manager, the PID shows
+	// 15640 (0x3D18) and the U2751A works like any other USBTMC device.
+	// I wasn't able to get close to working until the Agilent Measurement
+	// Manager (AMM) udpated the firmware to 1.08. When the PID is correct, it
+	// shows VISA address `USB0::0x0957::0x3D18::MY51010003::0::INSTR`
+	sw, err := ctx.NewDeviceByVIDPID(2391, 15640)
 	if err != nil {
 		log.Fatalf("NewDevice error: %s", err)
 	}
 	log.Printf("%.2fs to create new device.", time.Since(start).Seconds())
 
-	// Configure switch matrix using different write methods.
-	_, err = sw.WriteString("*CLS\n") // Write using usbtmc.WriteString
-	if err != nil {
-		log.Fatalf("error writing *CLS: %s", err)
-	}
+	sw.WriteString("rout:clos (@302:304)")
+	// time.Sleep(time.Second * 2)
+	// sw.WriteString("rout:clos (@302:304)")
 
 	log.Printf("Start querying")
-	queries := []string{"syst:vers?"}
-
-	// Query using a write and then a read.
-	for _, q := range queries {
-		sw.WriteString(q)
-		p := make([]byte, 512)
-		bytesRead, err := sw.Read(p)
-		if err != nil {
-			log.Printf("Error reading: %v", err)
-		} else {
-			log.Printf("Read %d bytes for %s? = %s", bytesRead, q, p[:bytesRead])
-		}
-	}
+	queries := []string{"*idn?", "rout:clos? (@301:305)"}
 
 	// Query using the query method
 	queryRange(sw, queries)
 
-	// Close the function generator and USBTMC context and check for errors.
+	sw.WriteString("rout:open (@302:304)")
+
+	// Close the matrix switch and USBTMC context and check for errors.
 	err = sw.Close()
 	if err != nil {
 		log.Printf("error closing sw: %s", err)
