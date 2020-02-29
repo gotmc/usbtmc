@@ -15,7 +15,7 @@ type Driver interface {
 type Context interface {
 	Close() error
 	SetDebugLevel(level int)
-	NewDeviceByVIDPID(VID, PID uint) (USBDevice, error)
+	NewDeviceByVIDPID(VID, PID int) (USBDevice, error)
 	// NewDeviceBySerial(sn string) (USBDevice, error)
 }
 
