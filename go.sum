@@ -1,4 +1,2 @@
 github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750 h1:DVKHLo3yE4psTjD9aM2pY7EHoicaQbgmaxxvvHC6ZSM=
 github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750/go.mod h1:Tl4HdAs1ThE3gECkNwz+1MWicX6FXddhJEw7L8jRDiI=
-github.com/gotmc/libusb v0.0.0-20191204152728-47e189886b84 h1:PHxCPN5hCHtPYMldGl65VVqewsMnIn3PerFXc3MlE7E=
-github.com/gotmc/libusb v0.0.0-20191204152728-47e189886b84/go.mod h1:fa+kQZl2bW/pna0xryZpEE/ckwD8gqOWjNCewHGp+Aw=
