@@ -14,11 +14,11 @@ func TestParsingVisaResourceString(t *testing.T) {
 	testCases := []struct {
 		resourceString string
 		interfaceType  string
-		boardIndex     uint16
-		manufacturerID uint16
-		modelCode      uint16
+		boardIndex     int
+		manufacturerID int
+		modelCode      int
 		serialNumber   string
-		interfaceIndex uint16
+		interfaceIndex int
 		resourceClass  string
 		isError        bool
 		errorString    error

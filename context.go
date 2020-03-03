@@ -5,7 +5,9 @@
 
 package usbtmc
 
-import "github.com/gotmc/usbtmc/driver"
+import (
+	"github.com/gotmc/usbtmc/driver"
+)
 
 // Context hold the USB context for the registered driver.
 type Context struct {
@@ -28,34 +30,28 @@ func NewContext() (*Context, error) {
 // NewDeviceByVIDPID creates new USBTMC compliant device based on the given the
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
-func (c *Context) NewDeviceByVIDPID(VID, PID uint) (*Device, error) {
+func (c *Context) NewDeviceByVIDPID(VID, PID int) (*Device, error) {
 	d := defaultDevice()
 	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(VID, PID)
 	if err != nil {
-		return d, err
+		return nil, err
 	}
 	d.usbDevice = usbDevice
-	return d, nil
+	return &d, nil
 }
 
 // NewDevice creates a new USBTMC compliant device based on the given VISA
 // address string.
 func (c *Context) NewDevice(address string) (*Device, error) {
-	d := defaultDevice()
 	v, err := NewVisaResource(address)
 	if err != nil {
-		return d, err
+		return nil, err
 	}
-	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(uint(v.manufacturerID), uint(v.modelCode))
-	if err != nil {
-		return d, err
-	}
-	d.usbDevice = usbDevice
-	return d, nil
+	return c.NewDeviceByVIDPID(v.manufacturerID, v.modelCode)
 }
 
-func defaultDevice() *Device {
-	return &Device{
+func defaultDevice() Device {
+	return Device{
 		termChar:        '\n',
 		bTag:            1,
 		termCharEnabled: true,

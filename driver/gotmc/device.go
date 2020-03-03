@@ -12,7 +12,7 @@ import "github.com/gotmc/libusb"
 type Device struct {
 	Timeout           int
 	USBDevice         *libusb.Device
-	DeviceDescriptor  *libusb.DeviceDescriptor
+	DeviceDescriptor  *libusb.Descriptor
 	DeviceHandle      *libusb.DeviceHandle
 	ConfigDescriptor  *libusb.ConfigDescriptor
 	BulkInEndpoint    *libusb.EndpointDescriptor
