@@ -49,17 +49,17 @@ func (c *Context) Close() error {
 // NewDeviceByVIDPID creates new USB device based on the given the
 // vendor ID and product ID. If multiple USB devices matching the VID and PID
 // are found, only the first is returned.
-func (c *Context) NewDeviceByVIDPID(VID, PID uint) (driver.USBDevice, error) {
+func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	dev, dh, err := c.ctx.OpenDeviceWithVendorProduct(uint16(VID), uint16(PID))
 	if err != nil {
 		return nil, err
 	}
-	usbDeviceDescriptor, _ := dev.GetDeviceDescriptor()
+	usbDeviceDescriptor, _ := dev.DeviceDescriptor()
 	if err != nil {
 		return nil, err
 	}
 	defer dh.Close()
-	configDescriptor, err := dev.GetActiveConfigDescriptor()
+	configDescriptor, err := dev.ActiveConfigDescriptor()
 	if err != nil {
 		return nil, fmt.Errorf("failed getting active config: %s", err)
 	}
