@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gotmc/libusb"
+	libusb "github.com/gotmc/libusb/v2"
 	"github.com/gotmc/usbtmc"
 	"github.com/gotmc/usbtmc/driver"
 )

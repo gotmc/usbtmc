@@ -4,9 +4,10 @@ os:
   - osx
 
 go:
-  - "1.8.x"
-  - "1.9.x"
-  - "1.10.x"
+  - "1.12.x"
+  - "1.13.x"
+  - "1.14.x"
+  - "1.15.x"
 
 script:
   - go test -v ./...
@@ -15,6 +16,5 @@ before_install:
   - brew upgrade libusb
 
 install:
-  - go get github.com/gotmc/libusb
-  - go get github.com/truveris/gousb/usb
-  - go get github.com/google/gousb
+  - go get -v github.com/gotmc/libusb
+  - go get -v github.com/google/gousb

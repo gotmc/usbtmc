@@ -5,7 +5,9 @@
 
 package gotmc
 
-import "github.com/gotmc/libusb"
+import (
+	libusb "github.com/gotmc/libusb/v2"
+)
 
 // Device models the libusb device that will form the basis of the USBTMC
 // compliant device.
