@@ -7,7 +7,6 @@ package google
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/gousb"
@@ -100,13 +99,11 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 			err = exitBootMode(devs[0], bootPID)
 
 			// Now find the normal USBTMC mode.
-			log.Printf("Look for vendor ID %s and product ID %s", vid, usbtmcPID)
 			devs, err = c.ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 				// This anonymous function is called for every device present. Returning
 				// true means the device should be opened.
 				return desc.Vendor == vid && desc.Product == usbtmcPID
 			})
-			log.Printf("Found %d devices with vendor ID %s and product ID %s", len(devs), vid, usbtmcPID)
 			if err != nil {
 				// Close all devices and return error.
 				for _, d := range devs {
