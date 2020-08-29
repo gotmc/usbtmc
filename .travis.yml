@@ -16,5 +16,5 @@ before_install:
   - brew upgrade libusb
 
 install:
-  - go get -v github.com/gotmc/libusb
+  - go get -v github.com/gotmc/libusb/v2
   - go get -v github.com/google/gousb
