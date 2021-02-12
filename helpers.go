@@ -7,6 +7,10 @@ package usbtmc
 
 import "encoding/binary"
 
+const (
+	bulkOutHeaderSize = 12
+)
+
 // nextbTag returns the next bTag given the current bTag. Per the USBTMC
 // standard, "the Host must set bTag such that 1<=bTag<=255."
 func nextbTag(bTag byte) byte {
