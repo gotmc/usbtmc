@@ -35,11 +35,11 @@ func (d *Device) Write(p []byte) (n int, err error) {
 	for pos := 0; pos < len(p); {
 		d.bTag = nextbTag(d.bTag)
 		thisLen := len(p[pos:])
-		if thisLen > maxTransferSize - bulkOutHeaderSize {
+		if thisLen > maxTransferSize-bulkOutHeaderSize {
 			thisLen = maxTransferSize - bulkOutHeaderSize
 		}
 		header := encodeBulkOutHeader(d.bTag, uint32(thisLen), true)
-		data := append(header[:], p[pos:thisLen]...)
+		data := append(header[:], p[pos:pos+thisLen]...)
 		if moduloFour := len(data) % 4; moduloFour > 0 {
 			numAlignment := 4 - moduloFour
 			alignment := bytes.Repeat([]byte{0x00}, numAlignment)
@@ -64,7 +64,7 @@ func (d *Device) Read(p []byte) (n int, err error) {
 	}
 	pos := 0
 	var transfer int
-	for ; pos < len(p); {
+	for pos < len(p) {
 		var resp int
 		var err error
 		if pos == 0 {
