@@ -7,6 +7,7 @@ package usbtmc
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
@@ -30,15 +31,27 @@ func (d *Device) Write(p []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
-	d.bTag = nextbTag(d.bTag)
-	header := encodeBulkOutHeader(d.bTag, uint32(len(p)), true)
-	data := append(header[:], p...)
-	if moduloFour := len(data) % 4; moduloFour > 0 {
-		numAlignment := 4 - moduloFour
-		alignment := bytes.Repeat([]byte{0x00}, numAlignment)
-		data = append(data, alignment...)
+	maxTransferSize := 512
+	for pos := 0; pos < len(p); {
+		d.bTag = nextbTag(d.bTag)
+		thisLen := len(p[pos:])
+		if thisLen > maxTransferSize-bulkOutHeaderSize {
+			thisLen = maxTransferSize - bulkOutHeaderSize
+		}
+		header := encodeBulkOutHeader(d.bTag, uint32(thisLen), true)
+		data := append(header[:], p[pos:pos+thisLen]...)
+		if moduloFour := len(data) % 4; moduloFour > 0 {
+			numAlignment := 4 - moduloFour
+			alignment := bytes.Repeat([]byte{0x00}, numAlignment)
+			data = append(data, alignment...)
+		}
+		_, err := d.usbDevice.Write(data)
+		if err != nil {
+			return pos, err
+		}
+		pos += thisLen
 	}
-	return d.usbDevice.Write(data)
+	return len(p), nil
 }
 
 // Read creates and sends the header on the bulk out endpoint and then reads
@@ -46,11 +59,34 @@ func (d *Device) Write(p []byte) (n int, err error) {
 func (d *Device) Read(p []byte) (n int, err error) {
 	d.bTag = nextbTag(d.bTag)
 	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
-	_, err = d.usbDevice.Write(header[:])
-	return d.readRemoveHeader(p)
+	if _, err = d.usbDevice.Write(header[:]); err != nil {
+		return 0, err
+	}
+	pos := 0
+	var transfer int
+	for pos < len(p) {
+		var resp int
+		var err error
+		if pos == 0 {
+			resp, transfer, err = d.readRemoveHeader(p[pos:])
+		} else {
+			resp, err = d.readKeepHeader(p[pos:])
+		}
+		if err != nil {
+			return pos, err
+		}
+		if resp == 0 {
+			break
+		}
+		pos += resp
+		if pos >= transfer {
+			break
+		}
+	}
+	return pos, nil
 }
 
-func (d *Device) readRemoveHeader(p []byte) (n int, err error) {
+func (d *Device) readRemoveHeader(p []byte) (n int, transfer int, err error) {
 	// FIXME(mdr): Seems like I shouldn't use 512 as a magic number or as a hard
 	// size limit. I should grab the max size of the bulk in endpoint.
 	usbtmcHeaderLen := 12
@@ -58,14 +94,17 @@ func (d *Device) readRemoveHeader(p []byte) (n int, err error) {
 	n, err = d.usbDevice.Read(temp)
 	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
 	if n < usbtmcHeaderLen {
-		return 0, err
+		return 0, 0, err
 	}
+	t32 := binary.LittleEndian.Uint32(temp[4:8])
+	transfer = int(t32)
 	reader := bytes.NewReader(temp)
 	_, err = reader.ReadAt(p, int64(usbtmcHeaderLen))
+
 	if err != nil && err != io.EOF {
-		return n - usbtmcHeaderLen, err
+		return n - usbtmcHeaderLen, transfer, err
 	}
-	return n - usbtmcHeaderLen, nil
+	return n - usbtmcHeaderLen, transfer, nil
 }
 
 func (d *Device) readKeepHeader(p []byte) (n int, err error) {
