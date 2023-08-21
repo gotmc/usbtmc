@@ -21,7 +21,7 @@ Additionally, the USBTMC subclass USB488 has an Interrupt-IN endpoint.
 
 ## USBTMC Descriptors
 
-- Interface class = 0xFE (application-secific)
+- Interface class = 0xFE (application-specific)
 - Interface subclass = 0x03 (indicates USBTMC)
 
 ## Installation
