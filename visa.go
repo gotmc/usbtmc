@@ -12,10 +12,6 @@ import (
 	"strings"
 )
 
-// TODO(mdr): Should parsing a VISA address string into a VISA resource be in
-// the usbtmc package or does this functionality belong in the visa package?
-// Dogmatic vs. Pragmatic?
-
 // VisaResource represents a VISA enabled piece of test equipment.
 type VisaResource struct {
 	resourceString string
@@ -29,8 +25,8 @@ type VisaResource struct {
 }
 
 // NewVisaResource creates a new VisaResource using the given VISA resourceString.
-func NewVisaResource(resourceString string) (visa *VisaResource, err error) {
-	visa = &VisaResource{
+func NewVisaResource(resourceString string) (*VisaResource, error) {
+	visa := &VisaResource{
 		resourceString: resourceString,
 		interfaceType:  "",
 		boardIndex:     0,
