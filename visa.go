@@ -40,6 +40,7 @@ func NewVisaResource(resourceString string) (*VisaResource, error) {
 		`(?P<manufacturerID>[^\s:]+)::` +
 		`(?P<modelCode>[^\s:]+)` +
 		`(::(?P<serialNumber>[^\s:]+))?` +
+		`(::(?P<interfaceNumber>[^\s:]+))?` +
 		`::(?P<resourceClass>[^\s:]+)$`
 
 	re := regexp.MustCompile(regString)
@@ -77,6 +78,14 @@ func NewVisaResource(resourceString string) (*VisaResource, error) {
 			return visa, errors.New("visa: modelCode error")
 		}
 		visa.modelCode = int(modelCode)
+	}
+
+	if matchMap["interfaceNumber"] != "" {
+		interfaceNumber, err := strconv.ParseUint(matchMap["interfaceNumber"], 0, 16)
+		if err != nil {
+			return visa, errors.New("visa: interface number error")
+		}
+		visa.interfaceIndex = int(interfaceNumber)
 	}
 
 	visa.serialNumber = matchMap["serialNumber"]

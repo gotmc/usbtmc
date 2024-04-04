@@ -44,6 +44,11 @@ func TestParsingVisaResourceString(t *testing.T) {
 			false, errors.New(""),
 		},
 		{
+			"USB0::0x0957::0x2007::MY57004760::0::INSTR",
+			"USB", 0, 2391, 8199, "MY57004760", 0, "INSTR",
+			false, errors.New(""),
+		},
+		{
 			"UBS::1234::5678::INSTR",
 			"", 0, 0, 0, "", 0, "",
 			true, errors.New("visa: interface type was not usb"),
