@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2020 The usbtmc developers. All rights reserved.
+// Copyright (c) 2015-2024 The usbtmc developers. All rights reserved.
 // Project site: https://github.com/gotmc/usbtmc
 // Use of this source code is governed by a MIT-style license that
 // can be found in the LICENSE.txt file for the project.
@@ -76,7 +76,12 @@ func encodeBulkOutHeader(bTag byte, transferSize uint32, eom bool) [12]byte {
 
 // Create the requestDevDepMsgIn Bulk-OUT Header with command specific
 // content as shown in USBTMC Table 4.
-func encodeMsgInBulkOutHeader(bTag byte, transferSize uint32, termCharEnabled bool, termChar byte) [12]byte {
+func encodeMsgInBulkOutHeader(
+	bTag byte,
+	transferSize uint32,
+	termCharEnabled bool,
+	termChar byte,
+) [12]byte {
 	// Offset 0-3: See Table 1.
 	prefix := encodeBulkHeaderPrefix(bTag, requestDevDepMsgIn)
 	// Offset 4-7: TransferSize
