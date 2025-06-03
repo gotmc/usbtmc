@@ -13,18 +13,31 @@ import (
 type Context struct {
 	driver        driver.Driver
 	libusbContext driver.Context
+	startTag      byte
 }
 
 // NewContext creates a new USB context using the registered driver.
 func NewContext() (*Context, error) {
-	var context Context
-	context.driver = libusbDriver
-	ctx, err := libusbDriver.NewContext()
+	libusbContext, err := libusbDriver.NewContext()
 	if err != nil {
 		return nil, err
 	}
-	context.libusbContext = ctx
-	return &context, nil
+
+	return &Context{
+		driver:        libusbDriver,
+		libusbContext: libusbContext,
+		startTag:      1,
+	}, nil
+}
+
+// SetStartTag sets the initial tag for communications with USBTMC devices. The
+// USBTMC spec requires that the tag used for transfer n be different than the
+// tag used for transfer n-1, and recommends that they increment between
+// transfers. Short-lived programs may wish to set the starting tag value to
+// avoid collsions, though of course they have no way of knowing the actual tag
+// used for the last transfer.
+func (c *Context) SetStartTag(startTag byte) {
+	c.startTag = startTag
 }
 
 // NewDeviceByVIDPID creates new USBTMC compliant device based on the given the
@@ -32,6 +45,7 @@ func NewContext() (*Context, error) {
 // are found, only the first is returned.
 func (c *Context) NewDeviceByVIDPID(VID, PID int) (*Device, error) {
 	d := defaultDevice()
+	d.bTag = c.startTag
 	usbDevice, err := c.libusbContext.NewDeviceByVIDPID(VID, PID)
 	if err != nil {
 		return nil, err

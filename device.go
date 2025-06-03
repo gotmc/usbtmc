@@ -8,11 +8,21 @@ package usbtmc
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/gotmc/usbtmc/driver"
+)
+
+const (
+	// This is a guess. The USB spec says the max value can be fetched from
+	// the descriptor, but the libusb documentation says packets can be up
+	// to 512 bytes.
+	// Ref: https://libusb.sourceforge.io/api-1.0/libusb_packetoverflow.html
+	maxPacketSize = 512
+
+	usbtmcHeaderLen = 12
 )
 
 // Device models a USBTMC device, which includes a USB device and the required
@@ -56,26 +66,61 @@ func (d *Device) Write(p []byte) (n int, err error) {
 
 // Read creates and sends the header on the bulk out endpoint and then reads
 // from the bulk in endpoint per USBTMC standard.
-func (d *Device) Read(p []byte) (n int, err error) {
+func (d *Device) doRead(p []byte, useTermChar bool) (n int, err error) {
 	d.bTag = nextbTag(d.bTag)
-	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), d.termCharEnabled, d.termChar)
+	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)),
+		useTermChar && d.termCharEnabled, d.termChar)
 	if _, err = d.usbDevice.Write(header[:]); err != nil {
 		return 0, err
 	}
+	debug.Printf("sent reqdevdepmsgin hdr %v (data len %v)\n",
+		hex.EncodeToString(header[:]), len(p))
+
+	// Per Figure 4 in the USBTMC spec, messages may be sent in multiple
+	// transfers. The first will have a USBTMC header, the middle transfers
+	// will only contain data bytes, and the final may end with alignment
+	// bytes. Mixed in with this are three definitions of length:
+	//
+	//   1) the number of bytes the caller wants to receive (len(p))
+	//   2) the number of bytes the device means to send ('transfer', from
+	//      the USBTMC header)
+	//   3) the number of bytes in the current transfer (resp).
+	//
+	// The header also includes an end-of-message (EOM) bit, but it's not
+	// clear how this bit is used.
+	//
+	// We'll attempt to read the number of bytes the caller wants (1), but
+	// will stop short if the number of bytes the device wants to send (2)
+	// is reached or if it sends a transfer with zero non-header bytes.
 	pos := 0
 	var transfer int
 	for pos < len(p) {
 		var resp int
 		var err error
 		if pos == 0 {
-			resp, transfer, err = d.readRemoveHeader(p[pos:])
+			resp, transfer, _, err = d.readRemoveHeader(p[pos:])
 		} else {
 			resp, err = d.readKeepHeader(p[pos:])
 		}
+		debug.Printf("read: pos %d (buf left %d); got %d bytes",
+			pos, len(p[pos:]), resp)
+
+		dumpLen, dumpTrunc := 100, 1
+		if resp < dumpLen {
+			dumpLen, dumpTrunc = resp, 0
+		}
+		if left := len(p) - pos; left < dumpLen {
+			dumpLen, dumpTrunc = left, 0
+		}
+		debug.Printf("data[%d:]=%s%s\n", pos,
+			hex.EncodeToString(p[pos:dumpLen]),
+			[]string{"", "..."}[dumpTrunc])
+
 		if err != nil {
 			return pos, err
 		}
 		if resp == 0 {
+			debug.Print("zero-length read; giving up")
 			break
 		}
 		pos += resp
@@ -83,28 +128,105 @@ func (d *Device) Read(p []byte) (n int, err error) {
 			break
 		}
 	}
-	return pos, nil
+
+	return min(pos, transfer), nil
 }
 
-func (d *Device) readRemoveHeader(p []byte) (n int, transfer int, err error) {
-	// FIXME(mdr): Seems like I shouldn't use 512 as a magic number or as a hard
-	// size limit. I should grab the max size of the bulk in endpoint.
-	usbtmcHeaderLen := 12
-	temp := make([]byte, 512)
-	n, err = d.usbDevice.Read(temp)
-	// Remove the USBMTC Bulk-IN Header from the data and the number of bytes
-	if n < usbtmcHeaderLen {
-		return 0, 0, err
+// Read reads from the device respecting the termChar setting. Use for transfers
+// of ASCII data.
+func (d *Device) Read(p []byte) (n int, err error) {
+	return d.doRead(p, true)
+}
+
+// BulkRead reads from the device without allowing termChar to be set. Use for
+// transfers of binary data.
+func (d *Device) BulkRead(p []byte) (n int, err error) {
+	return d.doRead(p, false)
+}
+
+func inHdrToString(buf []byte) string {
+	id, bTag, bTagInverse := msgID(buf[0]), buf[1], buf[2]
+
+	out := "type "
+	switch id {
+	case devDepMsgOut:
+		out += "1???" // no response expected
+	case devDepMsgIn:
+		out += "dvdp"
+	case vendorSpecificOut:
+		out += "126?" // no response expected
+	case vendorSpecificIn:
+		out += "vnsp"
+	default:
+		out += fmt.Sprintf("R%03d", id)
 	}
+
+	out += fmt.Sprintf(" tag % 3d", bTag)
+	if invertbTag(bTag) != bTagInverse {
+		out += fmt.Sprintf(" bad inv % 3d", bTagInverse)
+	}
+
+	if msgID(id) == devDepMsgIn {
+		out += fmt.Sprintf(" sz %d", binary.LittleEndian.Uint32(buf[4:8]))
+
+		attr := buf[8]
+		out += fmt.Sprintf(" D1=%d", (attr&2)>>1)
+		out += fmt.Sprintf(" EOM?=%s", []string{"no", "yes"}[(attr&1)])
+
+		out += " " + hex.EncodeToString(buf[9:12])
+	} else {
+		out += " " + hex.EncodeToString(buf[4:12])
+	}
+
+	return out
+}
+
+func (d *Device) readRemoveHeader(p []byte) (n int, transfer int, transferAttr byte, err error) {
+	// Reading from the USB device triggers interactions with the hardware,
+	// so we take care with the buffer size. The caller expects len(p)
+	// bytes, but we also need to allow space for the USBTMC header. The
+	// libusb documentation is full of dire warnings about what happens if
+	// the incoming data exceeds the receiving buffer[^1]. It recommends
+	// making sure the incoming buffer is a multiple of the maximum packet
+	// size. We don't know the actual maximum packet size, but we think we
+	// know the maximum packet size, so rounding the transfer size up to the
+	// next multiple of the maximum packet size should make it difficult for
+	// incoming data to overflow.
+	//
+	// [^1]: https://libusb.sourceforge.io/api-1.0/libusb_packetoverflow.html
+	tempSz := len(p) + usbtmcHeaderLen
+	if m := tempSz % 512; m != 0 {
+		tempSz += 512 - m
+	}
+
+	debug.Printf("readRemoveHeader: len(p) %v, w/hdr %v -> buf size %v\n",
+		len(p), len(p)+usbtmcHeaderLen, tempSz)
+	temp := make([]byte, tempSz)
+
+	n, err = d.usbDevice.Read(temp)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	if n < usbtmcHeaderLen {
+		return 0, 0, 0, fmt.Errorf(
+			"short %d-byte read: no space for header", n)
+	}
+
+	debug.Printf("readRemoveHeader: header %s\n", inHdrToString(temp))
+
 	t32 := binary.LittleEndian.Uint32(temp[4:8])
 	transfer = int(t32)
-	reader := bytes.NewReader(temp)
-	_, err = reader.ReadAt(p, int64(usbtmcHeaderLen))
+	transferAttr = temp[8]
 
-	if err != nil && err != io.EOF {
-		return n - usbtmcHeaderLen, transfer, err
+	// Copy the bytes after the reader to the caller's buffer, but only as
+	// many bytes as the USB device said it read. Let the caller deal with
+	// any discrepancies between the USBTMC transfer size and the number of
+	// bytes we got from the USB device.
+	toCopy := min(len(temp)-usbtmcHeaderLen, n-usbtmcHeaderLen)
+	if toCopy > 0 {
+		copy(p, temp[usbtmcHeaderLen:usbtmcHeaderLen+toCopy])
 	}
-	return n - usbtmcHeaderLen, transfer, nil
+	return n - usbtmcHeaderLen, transfer, transferAttr, nil
 }
 
 func (d *Device) readKeepHeader(p []byte) (n int, err error) {
@@ -141,7 +263,9 @@ func (d *Device) Query(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	p := make([]byte, 512)
+
+	// Try to ensure a single-packet read
+	p := make([]byte, maxPacketSize-usbtmcHeaderLen)
 	n, err := d.Read(p)
 	if err != nil {
 		return "", err
