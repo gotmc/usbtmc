@@ -5,17 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Test Commands
 
 ```bash
-# Format, vet, and test
-just check        # or: make check
+# Format and vet
+just check
 
-# Verbose test output
-just checkv
+# Run unit tests
+just unit
 
-# Lint with staticcheck
-just lint          # or: make lint
+# Lint with golangci-lint
+just lint
 
 # HTML coverage report
-just cover         # or: make cover
+just cover
 
 # Run a single test
 go test -run TestFuncName ./...
@@ -30,7 +30,7 @@ This is a Go library for communicating with USB Test & Measurement Class (USBTMC
 **Driver abstraction pattern:** The package uses a registration-based driver model (similar to `database/sql`). The `driver/` package defines interfaces (`Driver`, `Context`, `USBDevice`), and two concrete backends exist:
 
 - `driver/google/` — uses `github.com/google/gousb` (recommended, includes Keysight boot-mode handling)
-- `driver/gotmc/` — uses `github.com/gotmc/libusb/v2` (noted as not currently working in README)
+- `driver/gotmc/` — uses `github.com/gotmc/libusb/v2`
 
 Drivers self-register via `init()` calling `usbtmc.Register()`. Users select a driver with a blank import:
 ```go
