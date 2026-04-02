@@ -6,6 +6,7 @@
 package google
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/gousb"
@@ -24,11 +25,7 @@ type Device struct {
 // Close closes the Device.
 func (d *Device) Close() error {
 	d.intf.Close()
-	err := d.cfg.Close()
-	if err != nil {
-		return err
-	}
-	return d.dev.Close()
+	return errors.Join(d.cfg.Close(), d.dev.Close())
 }
 
 // String providers the Stringer interface method for Device.
