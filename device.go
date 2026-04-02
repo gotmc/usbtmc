@@ -54,7 +54,8 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 		if thisLen > maxTransferSize-bulkOutHeaderSize {
 			thisLen = maxTransferSize - bulkOutHeaderSize
 		}
-		header := encodeBulkOutHeader(d.bTag, uint32(thisLen), true)
+		isLastChunk := pos+thisLen >= len(p)
+		header := encodeBulkOutHeader(d.bTag, uint32(thisLen), isLastChunk)
 		data := append(header[:], p[pos:pos+thisLen]...)
 		if moduloFour := len(data) % 4; moduloFour > 0 {
 			numAlignment := 4 - moduloFour
