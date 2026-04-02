@@ -30,10 +30,11 @@ type Context struct {
 
 // NewContext creates a new libusb session/context.
 func (d Driver) NewContext() (driver.Context, error) {
-	var c Context
 	ctx, err := libusb.NewContext()
-	c.ctx = ctx
-	return &c, err
+	if err != nil {
+		return nil, err
+	}
+	return &Context{ctx: ctx}, nil
 }
 
 // SetDebugLevel sets the debug level for the libusb session/context
