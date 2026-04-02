@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -29,6 +30,7 @@ const (
 // Device models a USBTMC device, which includes a USB device and the required
 // USBTMC attributes and methods.
 type Device struct {
+	mu              sync.Mutex
 	usbDevice       driver.USBDevice
 	bTag            byte
 	termChar        byte
@@ -44,6 +46,8 @@ func (d *Device) Write(p []byte) (n int, err error) {
 
 // WriteContext is like Write but accepts a context.
 func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
@@ -77,6 +81,8 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 // doRead creates and sends the header on the bulk out endpoint and then reads
 // from the bulk in endpoint per USBTMC standard.
 func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int, err error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
