@@ -71,11 +71,20 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	}
 	log.Println("Claimed interface 0")
 	log.Printf("Found %d endpoint descriptors", len(firstDescriptor.EndpointDescriptors))
-	// FIXME(mdr): Probably not a good idea to blindly assume these endpoints are
-	// always in this order.
-	bulkOutput := firstDescriptor.EndpointDescriptors[0]
-	bulkInput := firstDescriptor.EndpointDescriptors[1]
-	interruptEndpoint := firstDescriptor.EndpointDescriptors[2]
+	var bulkIn, bulkOut, interruptIn *libusb.EndpointDescriptor
+	for _, ep := range firstDescriptor.EndpointDescriptors {
+		switch {
+		case ep.Direction() == 0 && ep.TransferType() == libusb.BulkTransfer:
+			bulkOut = ep
+		case ep.Direction() == 1 && ep.TransferType() == libusb.BulkTransfer:
+			bulkIn = ep
+		case ep.Direction() == 1 && ep.TransferType() == libusb.InterruptTransfer:
+			interruptIn = ep
+		}
+	}
+	if bulkIn == nil || bulkOut == nil {
+		return nil, fmt.Errorf("missing required bulk endpoints on device")
+	}
 
 	d := Device{
 		Timeout:           2000,
@@ -83,9 +92,9 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 		DeviceDescriptor:  usbDeviceDescriptor,
 		DeviceHandle:      dh,
 		ConfigDescriptor:  configDescriptor,
-		BulkInEndpoint:    bulkInput,
-		BulkOutEndpoint:   bulkOutput,
-		InterruptEndpoint: interruptEndpoint,
+		BulkInEndpoint:    bulkIn,
+		BulkOutEndpoint:   bulkOut,
+		InterruptEndpoint: interruptIn,
 	}
 	return &d, nil
 }
