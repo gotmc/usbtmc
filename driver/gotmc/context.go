@@ -54,7 +54,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	usbDeviceDescriptor, _ := dev.DeviceDescriptor()
+	usbDeviceDescriptor, err := dev.DeviceDescriptor()
 	if err != nil {
 		return nil, err
 	}
