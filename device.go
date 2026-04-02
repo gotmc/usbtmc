@@ -114,7 +114,7 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 		var resp int
 		var err error
 		if pos == 0 {
-			resp, transfer, _, err = d.readRemoveHeader(p[pos:])
+			resp, transfer, _, err = d.readRemoveHeader(d.bTag, p[pos:])
 		} else {
 			resp, err = d.readKeepHeader(p[pos:])
 		}
@@ -207,7 +207,7 @@ func inHdrToString(buf []byte) string {
 	return out
 }
 
-func (d *Device) readRemoveHeader(p []byte) (n int, transfer int, transferAttr byte, err error) {
+func (d *Device) readRemoveHeader(expectedBTag byte, p []byte) (n int, transfer int, transferAttr byte, err error) {
 	// Reading from the USB device triggers interactions with the hardware,
 	// so we take care with the buffer size. The caller expects len(p)
 	// bytes, but we also need to allow space for the USBTMC header. The
@@ -239,6 +239,24 @@ func (d *Device) readRemoveHeader(p []byte) (n int, transfer int, transferAttr b
 	}
 
 	debug.Printf("readRemoveHeader: header %s\n", inHdrToString(temp))
+
+	// Validate the response header per USBTMC Table 5.
+	respMsgID := msgID(temp[0])
+	if respMsgID != devDepMsgIn {
+		return 0, 0, 0, fmt.Errorf(
+			"unexpected MsgID: got %d, want %d (DEV_DEP_MSG_IN)",
+			respMsgID, devDepMsgIn)
+	}
+	respBTag := temp[1]
+	if respBTag != expectedBTag {
+		return 0, 0, 0, fmt.Errorf(
+			"bTag mismatch: got %d, want %d", respBTag, expectedBTag)
+	}
+	if temp[2] != invertbTag(respBTag) {
+		return 0, 0, 0, fmt.Errorf(
+			"bTagInverse mismatch: got %d, want %d",
+			temp[2], invertbTag(respBTag))
+	}
 
 	t32 := binary.LittleEndian.Uint32(temp[4:8])
 	transfer = int(t32)
