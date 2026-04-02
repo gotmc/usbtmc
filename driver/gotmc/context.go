@@ -62,14 +62,14 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	configDescriptor, err := dev.ActiveConfigDescriptor()
 	if err != nil {
 		_ = dh.Close()
-		return nil, fmt.Errorf("failed getting active config: %s", err)
+		return nil, fmt.Errorf("failed getting active config: %w", err)
 	}
 	log.Printf("Grabbed active config: %v", configDescriptor)
 	firstDescriptor := configDescriptor.SupportedInterfaces[0].InterfaceDescriptors[0]
 	err = dh.ClaimInterface(0)
 	if err != nil {
 		_ = dh.Close()
-		return nil, fmt.Errorf("error claiming USB interface: %s", err)
+		return nil, fmt.Errorf("error claiming USB interface: %w", err)
 	}
 	log.Println("Claimed interface 0")
 	log.Printf("Found %d endpoint descriptors", len(firstDescriptor.EndpointDescriptors))

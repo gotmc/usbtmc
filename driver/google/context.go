@@ -221,7 +221,7 @@ func exitBootMode(dev *gousb.Device, bootPID gousb.ID) error {
 			packet.data,
 		)
 		if err != nil {
-			return fmt.Errorf("error sending control transfer #%d: %s", i+1, err)
+			return fmt.Errorf("error sending control transfer #%d: %w", i+1, err)
 		}
 	}
 
