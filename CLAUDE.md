@@ -11,17 +11,22 @@ just check
 # Run unit tests
 just unit
 
-# Lint with golangci-lint
+# Lint with golangci-lint (v2 config in .golangci.yaml)
 just lint
 
 # HTML coverage report
 just cover
+
+# View documentation in browser via pkgsite
+just docs
 
 # Run a single test
 go test -run TestFuncName ./...
 ```
 
 Requires `libusb` C library installed on the system (used by both driver backends).
+
+`just unit` runs `just check` (fmt + vet) automatically before tests.
 
 ## Architecture
 
@@ -37,7 +42,7 @@ Drivers self-register via `init()` calling `usbtmc.Register()`. Users select a d
 import _ "github.com/gotmc/usbtmc/driver/google"
 ```
 
-**Core flow:** `Context` (context.go) wraps a driver context and creates `Device` instances. `Device` (device.go) implements USBTMC protocol framing — it encodes/decodes the 12-byte USBTMC bulk headers (helpers.go) around user data for USB bulk transfers. Key device methods: `Write`, `Read` (ASCII with termChar), `BulkRead` (binary without termChar), `Command` (SCPI with auto-newline), `Query` (write+read).
+**Core flow:** `Context` (context.go) wraps a driver context and creates `Device` instances. `Device` (device.go) implements USBTMC protocol framing — it encodes/decodes the 12-byte USBTMC bulk headers (helpers.go) around user data for USB bulk transfers. Key device methods: `Write`, `Read` (ASCII with termChar), `BulkRead` (binary without termChar), `WriteString`, `Command` (SCPI with auto-newline), `Query` (write+read). `Write`, `Read`, `BulkRead`, and `WriteString` have context-free signatures to satisfy the `ivi.Instrument` interface, with `*Context` variants (e.g., `WriteContext`, `ReadContext`) that accept a `context.Context`.
 
 **VISA addressing:** visa.go parses VISA resource strings (e.g., `USB0::0x0957::0x2818::0::INSTR`) to extract VID/PID for device lookup.
 
