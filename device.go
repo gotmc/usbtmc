@@ -38,7 +38,12 @@ type Device struct {
 // Write creates the appropriate USBMTC header, writes the header and data on
 // the bulk out endpoint, and returns the number of bytes written and any
 // errors.
-func (d *Device) Write(ctx context.Context, p []byte) (n int, err error) {
+func (d *Device) Write(p []byte) (n int, err error) {
+	return d.WriteContext(context.Background(), p)
+}
+
+// WriteContext is like Write but accepts a context.
+func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) {
 	// FIXME(mdr): I need to change this so that I look at the size of the buf
 	// being written to see if it can truly fit into one transfer, and if not
 	// split it into multiple transfers.
@@ -135,13 +140,23 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 
 // Read reads from the device respecting the termChar setting. Use for transfers
 // of ASCII data.
-func (d *Device) Read(ctx context.Context, p []byte) (n int, err error) {
+func (d *Device) Read(p []byte) (n int, err error) {
+	return d.ReadContext(context.Background(), p)
+}
+
+// ReadContext is like Read but accepts a context.
+func (d *Device) ReadContext(ctx context.Context, p []byte) (n int, err error) {
 	return d.doRead(ctx, p, true)
 }
 
 // BulkRead reads from the device without allowing termChar to be set. Use for
 // transfers of binary data.
-func (d *Device) BulkRead(ctx context.Context, p []byte) (n int, err error) {
+func (d *Device) BulkRead(p []byte) (n int, err error) {
+	return d.BulkReadContext(context.Background(), p)
+}
+
+// BulkReadContext is like BulkRead but accepts a context.
+func (d *Device) BulkReadContext(ctx context.Context, p []byte) (n int, err error) {
 	return d.doRead(ctx, p, false)
 }
 
@@ -241,8 +256,13 @@ func (d *Device) Close() error {
 
 // WriteString writes a string using the underlying USB device. A newline
 // terminator is not automatically added.
-func (d *Device) WriteString(ctx context.Context, s string) (n int, err error) {
-	return d.Write(ctx, []byte(s))
+func (d *Device) WriteString(s string) (n int, err error) {
+	return d.Write([]byte(s))
+}
+
+// WriteStringContext is like WriteString but accepts a context.
+func (d *Device) WriteStringContext(ctx context.Context, s string) (n int, err error) {
+	return d.WriteContext(ctx, []byte(s))
 }
 
 // Command sends the SCPI/ASCII command to the underlying USB device. A newline
@@ -252,7 +272,7 @@ func (d *Device) Command(ctx context.Context, format string, a ...any) error {
 	if a != nil {
 		cmd = fmt.Sprintf(format, a...)
 	}
-	_, err := d.WriteString(ctx, strings.TrimSpace(cmd)+"\n")
+	_, err := d.WriteStringContext(ctx, strings.TrimSpace(cmd)+"\n")
 	return err
 }
 
@@ -267,7 +287,7 @@ func (d *Device) Query(ctx context.Context, s string) (string, error) {
 
 	// Try to ensure a single-packet read
 	p := make([]byte, maxPacketSize-usbtmcHeaderLen)
-	n, err := d.Read(ctx, p)
+	n, err := d.ReadContext(ctx, p)
 	if err != nil {
 		return "", err
 	}
