@@ -56,17 +56,19 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	}
 	usbDeviceDescriptor, err := dev.DeviceDescriptor()
 	if err != nil {
+		_ = dh.Close()
 		return nil, err
 	}
-	defer func() { _ = dh.Close() }()
 	configDescriptor, err := dev.ActiveConfigDescriptor()
 	if err != nil {
+		_ = dh.Close()
 		return nil, fmt.Errorf("failed getting active config: %s", err)
 	}
 	log.Printf("Grabbed active config: %v", configDescriptor)
 	firstDescriptor := configDescriptor.SupportedInterfaces[0].InterfaceDescriptors[0]
 	err = dh.ClaimInterface(0)
 	if err != nil {
+		_ = dh.Close()
 		return nil, fmt.Errorf("error claiming USB interface: %s", err)
 	}
 	log.Println("Claimed interface 0")
@@ -83,6 +85,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 		}
 	}
 	if bulkIn == nil || bulkOut == nil {
+		_ = dh.Close()
 		return nil, fmt.Errorf("missing required bulk endpoints on device")
 	}
 
