@@ -1,6 +1,6 @@
 module github.com/gotmc/usbtmc
 
-go 1.18
+go 1.21
 
 require (
 	github.com/google/gousb v1.1.3
