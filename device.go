@@ -49,6 +49,9 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 	// split it into multiple transfers.
 	maxTransferSize := 512
 	for pos := 0; pos < len(p); {
+		if err := ctx.Err(); err != nil {
+			return pos, err
+		}
 		d.bTag = nextbTag(d.bTag)
 		thisLen := len(p[pos:])
 		if thisLen > maxTransferSize-bulkOutHeaderSize {
@@ -74,6 +77,9 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 // doRead creates and sends the header on the bulk out endpoint and then reads
 // from the bulk in endpoint per USBTMC standard.
 func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int, err error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	d.bTag = nextbTag(d.bTag)
 	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), //nolint:gosec
 		useTermChar && d.termCharEnabled, d.termChar)
@@ -102,6 +108,9 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 	pos := 0
 	var transfer int
 	for pos < len(p) {
+		if err := ctx.Err(); err != nil {
+			return pos, err
+		}
 		var resp int
 		var err error
 		if pos == 0 {
