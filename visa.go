@@ -45,10 +45,13 @@ func NewVisaResource(resourceString string) (*VisaResource, error) {
 
 	re := regexp.MustCompile(regString)
 	res := re.FindStringSubmatch(resourceString)
+	if res == nil {
+		return visa, errors.New("visa: resource string did not match expected format")
+	}
 	subexpNames := re.SubexpNames()
 	matchMap := map[string]string{}
 	for i, n := range res {
-		matchMap[subexpNames[i]] = string(n)
+		matchMap[subexpNames[i]] = n
 	}
 
 	if strings.ToUpper(matchMap["interfaceType"]) != "USB" {
