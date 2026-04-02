@@ -213,7 +213,9 @@ func inHdrToString(buf []byte) string {
 	return out
 }
 
-func (d *Device) readRemoveHeader(expectedBTag byte, p []byte) (n int, transfer int, transferAttr byte, err error) {
+func (d *Device) readRemoveHeader(
+	expectedBTag byte, p []byte,
+) (n int, transfer int, transferAttr byte, err error) {
 	// Reading from the USB device triggers interactions with the hardware,
 	// so we take care with the buffer size. The caller expects len(p)
 	// bytes, but we also need to allow space for the USBTMC header. The

@@ -71,7 +71,10 @@ func TestEncodeBulkHeaderPrefix(t *testing.T) {
 		{"devDepMsgOut_bTag1", devDepMsgOut, 1, [4]byte{0x01, 0x01, 0xfe, 0x00}},
 		{"requestDevDepMsgIn_bTag4", requestDevDepMsgIn, 4, [4]byte{0x02, 0x04, 0xfb, 0x00}},
 		{"vendorSpecificOut_bTag4", vendorSpecificOut, 4, [4]byte{0x7e, 0x04, 0xfb, 0x00}},
-		{"requestVendorSpecificIn_bTag4", requestVendorSpecificIn, 4, [4]byte{0x7f, 0x04, 0xfb, 0x00}},
+		{
+			"requestVendorSpecificIn_bTag4",
+			requestVendorSpecificIn, 4, [4]byte{0x7f, 0x04, 0xfb, 0x00},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

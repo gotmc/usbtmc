@@ -58,8 +58,8 @@ func buildDevDepMsgInResponse(bTag byte, payload []byte) []byte {
 	hdr[1] = bTag
 	hdr[2] = invertbTag(bTag)
 	hdr[3] = 0x00
-	binary.LittleEndian.PutUint32(hdr[4:8], uint32(len(payload)))
-	hdr[8] = 0x01 // EOM
+	binary.LittleEndian.PutUint32(hdr[4:8], uint32(len(payload))) //nolint:gosec
+	hdr[8] = 0x01                                                 // EOM
 	resp := append(hdr, payload...)
 	// Pad to 4-byte alignment.
 	if m := len(resp) % 4; m != 0 {
@@ -102,7 +102,7 @@ func TestWriteSingleChunk(t *testing.T) {
 		t.Errorf("bTag = %d, want 1", w[1])
 	}
 	transferSize := binary.LittleEndian.Uint32(w[4:8])
-	if transferSize != uint32(len(data)) {
+	if transferSize != uint32(len(data)) { //nolint:gosec
 		t.Errorf("transferSize = %d, want %d", transferSize, len(data))
 	}
 	if w[8] != 0x01 {
