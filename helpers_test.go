@@ -5,7 +5,10 @@
 
 package usbtmc
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestNextBtag(t *testing.T) {
 	testCases := []struct {
@@ -19,13 +22,15 @@ func TestNextBtag(t *testing.T) {
 		{10, 11},
 		{254, 255},
 	}
-	for _, testCase := range testCases {
-		nextbTag := nextbTag(testCase.bTag)
-		if nextbTag != testCase.nextbTag {
-			t.Errorf(
-				"nextbTag == %x, want %x for given bTag %x",
-				nextbTag, testCase.nextbTag, testCase.bTag)
-		}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("bTag_%d", tc.bTag), func(t *testing.T) {
+			got := nextbTag(tc.bTag)
+			if got != tc.nextbTag {
+				t.Errorf(
+					"nextbTag == %x, want %x for given bTag %x",
+					got, tc.nextbTag, tc.bTag)
+			}
+		})
 	}
 }
 
@@ -41,82 +46,87 @@ func TestInvertingBtag(t *testing.T) {
 		{0xf0, 0x0f},
 		{0xff, 0x00},
 	}
-	for _, testCase := range testCases {
-		bTagInverse := invertbTag(testCase.bTag)
-		if bTagInverse != testCase.bTagInverse {
-			t.Errorf(
-				"bTagInverse == %x, want %x for bTag %x",
-				bTagInverse, testCase.bTagInverse, testCase.bTag)
-		}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("bTag_%02x", tc.bTag), func(t *testing.T) {
+			got := invertbTag(tc.bTag)
+			if got != tc.bTagInverse {
+				t.Errorf(
+					"bTagInverse == %x, want %x for bTag %x",
+					got, tc.bTagInverse, tc.bTag)
+			}
+		})
 	}
 }
 
 func TestEncodeBulkHeaderPrefix(t *testing.T) {
 	tests := []struct {
+		name         string
 		msgID        msgID
 		bTag         byte
 		headerPrefix [4]byte
 	}{
-		{devDepMsgOut, 2, [4]byte{0x01, 0x02, 0xfd, 0x00}},
-		{devDepMsgOut, 129, [4]byte{0x01, 0x81, 0x7e, 0x00}},
-		{devDepMsgOut, 255, [4]byte{0x01, 0xff, 0x00, 0x00}},
-		{devDepMsgOut, 1, [4]byte{0x01, 0x01, 0xfe, 0x00}},
-		{requestDevDepMsgIn, 4, [4]byte{0x02, 0x04, 0xfb, 0x00}},
-		{vendorSpecificOut, 4, [4]byte{0x7e, 0x04, 0xfb, 0x00}},
-		{requestVendorSpecificIn, 4, [4]byte{0x7f, 0x04, 0xfb, 0x00}},
+		{"devDepMsgOut_bTag2", devDepMsgOut, 2, [4]byte{0x01, 0x02, 0xfd, 0x00}},
+		{"devDepMsgOut_bTag129", devDepMsgOut, 129, [4]byte{0x01, 0x81, 0x7e, 0x00}},
+		{"devDepMsgOut_bTag255", devDepMsgOut, 255, [4]byte{0x01, 0xff, 0x00, 0x00}},
+		{"devDepMsgOut_bTag1", devDepMsgOut, 1, [4]byte{0x01, 0x01, 0xfe, 0x00}},
+		{"requestDevDepMsgIn_bTag4", requestDevDepMsgIn, 4, [4]byte{0x02, 0x04, 0xfb, 0x00}},
+		{"vendorSpecificOut_bTag4", vendorSpecificOut, 4, [4]byte{0x7e, 0x04, 0xfb, 0x00}},
+		{"requestVendorSpecificIn_bTag4", requestVendorSpecificIn, 4, [4]byte{0x7f, 0x04, 0xfb, 0x00}},
 	}
-	for _, test := range tests {
-		headerPrefix := encodeBulkHeaderPrefix(test.bTag, test.msgID)
-		if headerPrefix != test.headerPrefix {
-			t.Errorf(
-				"headerPrefix == %x, want %x",
-				headerPrefix, test.headerPrefix)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := encodeBulkHeaderPrefix(tt.bTag, tt.msgID)
+			if got != tt.headerPrefix {
+				t.Errorf(
+					"headerPrefix == %x, want %x",
+					got, tt.headerPrefix)
+			}
+		})
 	}
 }
 
 func TestEncodeBulkOutHeader(t *testing.T) {
 	tests := []struct {
+		name         string
 		transferSize uint32
 		eom          bool
 		bTag         byte
 		desired      [12]byte
 	}{
 		{
-			9,
-			true,
-			1,
+			"size9_eom_bTag1",
+			9, true, 1,
 			[12]byte{0x01, 0x01, 0xfe, 0x00, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 		{
-			256,
-			false,
-			2,
+			"size256_noEom_bTag2",
+			256, false, 2,
 			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
-			256,
-			true,
-			2,
+			"size256_eom_bTag2",
+			256, true, 2,
 			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 		{
-			512,
-			true,
-			2,
+			"size512_eom_bTag2",
+			512, true, 2,
 			[12]byte{0x01, 0x02, 0xfd, 0x00, 0x00, 0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 	}
-	for _, test := range tests {
-		result := encodeBulkOutHeader(test.bTag, test.transferSize, test.eom)
-		if result != test.desired {
-			t.Errorf("BulkOutHeader == %x, want %x", result, test.desired)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := encodeBulkOutHeader(tt.bTag, tt.transferSize, tt.eom)
+			if got != tt.desired {
+				t.Errorf("BulkOutHeader == %x, want %x", got, tt.desired)
+			}
+		})
 	}
 }
 
 func TestEncodeMsgInBulkOutHeader(t *testing.T) {
 	tests := []struct {
+		name            string
 		bTag            byte
 		transferSize    uint32
 		termCharEnabled bool
@@ -124,29 +134,27 @@ func TestEncodeMsgInBulkOutHeader(t *testing.T) {
 		desired         [12]byte
 	}{
 		{
-			1,
-			9,
-			true,
-			'\n',
+			"size9_termChar_bTag1",
+			1, 9, true, '\n',
 			[12]byte{0x02, 0x01, 0xfe, 0x00, 0x09, 0x00, 0x00, 0x00, 0x02, 0x0a, 0x00, 0x00},
 		},
 		{
-			2,
-			512,
-			true,
-			'\n',
+			"size512_termChar_bTag2",
+			2, 512, true, '\n',
 			[12]byte{0x02, 0x02, 0xfd, 0x00, 0x00, 0x02, 0x00, 0x00, 0x02, 0x0a, 0x00, 0x00},
 		},
 	}
-	for _, test := range tests {
-		result := encodeMsgInBulkOutHeader(
-			test.bTag,
-			test.transferSize,
-			test.termCharEnabled,
-			test.termChar,
-		)
-		if result != test.desired {
-			t.Errorf("BulkOutHeader == %x, want %x", result, test.desired)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := encodeMsgInBulkOutHeader(
+				tt.bTag,
+				tt.transferSize,
+				tt.termCharEnabled,
+				tt.termChar,
+			)
+			if got != tt.desired {
+				t.Errorf("BulkOutHeader == %x, want %x", got, tt.desired)
+			}
+		})
 	}
 }

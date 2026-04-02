@@ -5,7 +5,10 @@
 
 package usbtmc
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestRequestString(t *testing.T) {
 	testCases := []struct {
@@ -15,14 +18,15 @@ func TestRequestString(t *testing.T) {
 		{initiateAbortBulkOut, "Aborts a Bulk-OUT transfer."},
 		{readStatusByte, "Returns the IEEE 488 Status Byte."},
 	}
-	for _, testCase := range testCases {
-		if testCase.request.String() != testCase.description {
-			t.Errorf(
-				"request.String() == %x, want %x for request %x",
-				testCase.request.String(),
-				testCase.description,
-				testCase.request,
-			)
-		}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("bRequest_%d", tc.request), func(t *testing.T) {
+			if tc.request.String() != tc.description {
+				t.Errorf(
+					"request.String() == %s, want %s",
+					tc.request.String(),
+					tc.description,
+				)
+			}
+		})
 	}
 }

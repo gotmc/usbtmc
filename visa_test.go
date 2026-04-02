@@ -6,12 +6,12 @@
 package usbtmc
 
 import (
-	"errors"
 	"testing"
 )
 
 func TestParsingVisaResourceString(t *testing.T) {
 	testCases := []struct {
+		name           string
 		resourceString string
 		interfaceType  string
 		boardIndex     int
@@ -21,114 +21,104 @@ func TestParsingVisaResourceString(t *testing.T) {
 		interfaceIndex int
 		resourceClass  string
 		isError        bool
-		errorString    error
+		errorString    string
 	}{
 		{
+			"lowercase_with_serial",
 			"usb0::2391::1031::MY44123456::INSTR",
 			"USB", 0, 2391, 1031, "MY44123456", 0, "INSTR",
-			false, errors.New(""),
+			false, "",
 		},
 		{
+			"no_board_index_no_serial",
 			"USB::1234::5678::INSTR",
 			"USB", 0, 1234, 5678, "", 0, "INSTR",
-			false, errors.New(""),
+			false, "",
 		},
 		{
+			"with_serial",
 			"USB::1234::5678::SERIAL::INSTR",
 			"USB", 0, 1234, 5678, "SERIAL", 0, "INSTR",
-			false, errors.New(""),
+			false, "",
 		},
 		{
+			"hex_vid_pid",
 			"USB0::0x1234::0x5678::INSTR",
 			"USB", 0, 4660, 22136, "", 0, "INSTR",
-			false, errors.New(""),
+			false, "",
 		},
 		{
+			"hex_with_serial_and_interface",
 			"USB0::0x0957::0x2007::MY57004760::0::INSTR",
 			"USB", 0, 2391, 8199, "MY57004760", 0, "INSTR",
-			false, errors.New(""),
+			false, "",
 		},
 		{
+			"wrong_interface_type",
 			"UBS::1234::5678::INSTR",
 			"", 0, 0, 0, "", 0, "",
-			true, errors.New("visa: interface type was not usb"),
+			true, "visa: interface type was not usb",
 		},
 		{
+			"wrong_resource_class",
 			"USB::1234::5678::INTSR",
 			"USB", 0, 1234, 5678, "", 0, "",
-			true, errors.New("visa: resource class was not instr"),
+			true, "visa: resource class was not instr",
 		},
 	}
-	for _, testCase := range testCases {
-		resource, err := NewVisaResource(testCase.resourceString)
-		if resource.interfaceType != testCase.interfaceType {
-			t.Errorf(
-				"interfaceType == %s, want %s for resource %s",
-				resource.interfaceType,
-				testCase.interfaceType,
-				testCase.resourceString,
-			)
-		}
-		if resource.boardIndex != testCase.boardIndex {
-			t.Errorf(
-				"boardIndex == %d, want %d for resource %s",
-				resource.boardIndex,
-				testCase.boardIndex,
-				testCase.resourceString,
-			)
-		}
-		if resource.manufacturerID != testCase.manufacturerID {
-			t.Errorf(
-				"manufacturerID == %d, want %d for resource %s",
-				resource.manufacturerID,
-				testCase.manufacturerID,
-				testCase.resourceString,
-			)
-		}
-		if resource.modelCode != testCase.modelCode {
-			t.Errorf(
-				"modelCode == %d, want %d for resource %s",
-				resource.modelCode,
-				testCase.modelCode,
-				testCase.resourceString,
-			)
-		}
-		if resource.serialNumber != testCase.serialNumber {
-			t.Errorf(
-				"serialNumber == %s, want %s for resource %s",
-				resource.serialNumber,
-				testCase.serialNumber,
-				testCase.resourceString,
-			)
-		}
-		if resource.interfaceIndex != testCase.interfaceIndex {
-			t.Errorf(
-				"interfaceIndex == %d, want %d for resource %s",
-				resource.interfaceIndex,
-				testCase.interfaceIndex,
-				testCase.resourceString,
-			)
-		}
-		if resource.resourceClass != testCase.resourceClass {
-			t.Errorf(
-				"resourceClass == %s, want %s for resource %s",
-				resource.resourceClass,
-				testCase.resourceClass,
-				testCase.resourceString,
-			)
-		}
-		if err != nil && testCase.isError {
-			if err.Error() != testCase.errorString.Error() {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			resource, err := NewVisaResource(tc.resourceString)
+			if resource.interfaceType != tc.interfaceType {
 				t.Errorf(
-					"err == %s, want %s for resource %s",
-					err,
-					testCase.errorString,
-					testCase.resourceString,
+					"interfaceType == %s, want %s",
+					resource.interfaceType, tc.interfaceType,
 				)
 			}
-		}
-		if err != nil && !testCase.isError {
-			t.Errorf("Unhandled error: %q for resource %s", err, testCase.resourceString)
-		}
+			if resource.boardIndex != tc.boardIndex {
+				t.Errorf(
+					"boardIndex == %d, want %d",
+					resource.boardIndex, tc.boardIndex,
+				)
+			}
+			if resource.manufacturerID != tc.manufacturerID {
+				t.Errorf(
+					"manufacturerID == %d, want %d",
+					resource.manufacturerID, tc.manufacturerID,
+				)
+			}
+			if resource.modelCode != tc.modelCode {
+				t.Errorf(
+					"modelCode == %d, want %d",
+					resource.modelCode, tc.modelCode,
+				)
+			}
+			if resource.serialNumber != tc.serialNumber {
+				t.Errorf(
+					"serialNumber == %s, want %s",
+					resource.serialNumber, tc.serialNumber,
+				)
+			}
+			if resource.interfaceIndex != tc.interfaceIndex {
+				t.Errorf(
+					"interfaceIndex == %d, want %d",
+					resource.interfaceIndex, tc.interfaceIndex,
+				)
+			}
+			if resource.resourceClass != tc.resourceClass {
+				t.Errorf(
+					"resourceClass == %s, want %s",
+					resource.resourceClass, tc.resourceClass,
+				)
+			}
+			if err != nil && tc.isError {
+				if err.Error() != tc.errorString {
+					t.Errorf("err == %s, want %s", err, tc.errorString)
+				}
+			}
+			if err != nil && !tc.isError {
+				t.Errorf("unexpected error: %q", err)
+			}
+		})
 	}
 }
