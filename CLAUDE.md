@@ -22,11 +22,14 @@ just docs
 
 # Run a single test
 go test -run TestFuncName ./...
+
+# Tidy and verify modules
+just tidy
 ```
 
 Requires `libusb` C library installed on the system (used by both driver backends).
 
-`just unit` runs `just check` (fmt + vet) automatically before tests.
+`just unit` runs `just check` (fmt + vet) automatically before tests. Tests run with `-short` and `-race` flags by default.
 
 ## Architecture
 

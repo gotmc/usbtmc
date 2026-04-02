@@ -50,7 +50,7 @@ func (c *Context) Close() error {
 func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	// Iterate through available devices. Find all devices that match the given
 	// Vendor ID and Product ID.
-	vid, usbtmcPID := gousb.ID(VID), gousb.ID(PID)
+	vid, usbtmcPID := gousb.ID(uint16(VID)), gousb.ID(uint16(PID)) //nolint:gosec
 	devs, err := c.ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// This anonymous function is called for every device present. Returning
 		// true means the device should be opened.
@@ -59,8 +59,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	if err != nil {
 		// Close all devices and return error.
 		for _, d := range devs {
-			// I'm ignoring any errors on close at the moment.
-			d.Close()
+			_ = d.Close()
 		}
 		return nil, err
 	}
@@ -87,16 +86,19 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 			if err != nil {
 				// Close all devices and return error.
 				for _, d := range devs {
-					// I'm ignoring any errors on close at the moment.
-					d.Close()
+					_ = d.Close()
 				}
 				return nil, err
 			}
 			if len(devs) == 0 {
-				return nil, fmt.Errorf("no devices found matching VID %s and PID %s", vid, usbtmcPID)
+				return nil, fmt.Errorf(
+					"no devices found matching VID %s and PID %s", vid, usbtmcPID,
+				)
 			}
 			// Found a Keysight USB modular device, so exit boot mode.
-			err = exitBootMode(devs[0], bootPID)
+			if err = exitBootMode(devs[0], bootPID); err != nil {
+				return nil, err
+			}
 
 			// Now find the normal USBTMC mode.
 			devs, err = c.ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
@@ -107,13 +109,14 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 			if err != nil {
 				// Close all devices and return error.
 				for _, d := range devs {
-					// I'm ignoring any errors on close at the moment.
-					d.Close()
+					_ = d.Close()
 				}
 				return nil, err
 			}
 			if len(devs) == 0 {
-				return nil, fmt.Errorf("no devices found after reboot matching VID %s and PID %s", vid, usbtmcPID)
+				return nil, fmt.Errorf(
+					"no devices found after reboot matching VID %s and PID %s", vid, usbtmcPID,
+				)
 			}
 		}
 	} else if len(devs) == 0 {
@@ -123,7 +126,7 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 	// Close all except the first returned device.
 	for i, d := range devs {
 		if i != 0 {
-			d.Close()
+			_ = d.Close()
 		}
 	}
 
@@ -154,19 +157,23 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 		intx = intf
 		// Loop through all the endpoints on this interface
 		for _, ep := range intf.Setting.Endpoints {
-			if ep.Direction == gousb.EndpointDirectionOut && ep.TransferType == gousb.TransferTypeBulk {
+			isOut := ep.Direction == gousb.EndpointDirectionOut
+			isIn := ep.Direction == gousb.EndpointDirectionIn
+			isBulk := ep.TransferType == gousb.TransferTypeBulk
+			isInterrupt := ep.TransferType == gousb.TransferTypeInterrupt
+			if isOut && isBulk {
 				bulkOut, err = intf.OutEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
 				}
 			}
-			if ep.Direction == gousb.EndpointDirectionIn && ep.TransferType == gousb.TransferTypeBulk {
+			if isIn && isBulk {
 				bulkIn, err = intf.InEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
 				}
 			}
-			if ep.Direction == gousb.EndpointDirectionIn && ep.TransferType == gousb.TransferTypeInterrupt {
+			if isIn && isInterrupt {
 				intIn, err = intf.InEndpoint(ep.Number)
 				if err != nil {
 					return nil, err
@@ -214,7 +221,7 @@ func exitBootMode(dev *gousb.Device, bootPID gousb.ID) error {
 			packet.data,
 		)
 		if err != nil {
-			return fmt.Errorf("Error sending control transfer #%d: %s", i+1, err)
+			return fmt.Errorf("error sending control transfer #%d: %s", i+1, err)
 		}
 	}
 

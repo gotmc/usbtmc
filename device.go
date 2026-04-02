@@ -74,7 +74,7 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 // from the bulk in endpoint per USBTMC standard.
 func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int, err error) {
 	d.bTag = nextbTag(d.bTag)
-	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)),
+	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), //nolint:gosec
 		useTermChar && d.termCharEnabled, d.termChar)
 	if _, err = d.usbDevice.Write(header[:]); err != nil {
 		return 0, err
@@ -291,7 +291,7 @@ func (d *Device) Query(ctx context.Context, s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s = fmt.Sprintf("%s", p[:n])
+	s = string(p[:n])
 	p = nil
 	return s, nil
 }
