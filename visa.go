@@ -12,6 +12,15 @@ import (
 	"strings"
 )
 
+var visaResourceRe = regexp.MustCompile(
+	`^(?P<interfaceType>[A-Za-z]+)(?P<boardIndex>\d*)::` +
+		`(?P<manufacturerID>[^\s:]+)::` +
+		`(?P<modelCode>[^\s:]+)` +
+		`(::(?P<serialNumber>[^\s:]+))?` +
+		`(::(?P<interfaceNumber>[^\s:]+))?` +
+		`::(?P<resourceClass>[^\s:]+)$`,
+)
+
 // VisaResource represents a VISA enabled piece of test equipment.
 type VisaResource struct {
 	resourceString string
@@ -36,19 +45,11 @@ func NewVisaResource(resourceString string) (*VisaResource, error) {
 		interfaceIndex: 0,
 		resourceClass:  "",
 	}
-	regString := `^(?P<interfaceType>[A-Za-z]+)(?P<boardIndex>\d*)::` +
-		`(?P<manufacturerID>[^\s:]+)::` +
-		`(?P<modelCode>[^\s:]+)` +
-		`(::(?P<serialNumber>[^\s:]+))?` +
-		`(::(?P<interfaceNumber>[^\s:]+))?` +
-		`::(?P<resourceClass>[^\s:]+)$`
-
-	re := regexp.MustCompile(regString)
-	res := re.FindStringSubmatch(resourceString)
+	res := visaResourceRe.FindStringSubmatch(resourceString)
 	if res == nil {
 		return visa, errors.New("visa: resource string did not match expected format")
 	}
-	subexpNames := re.SubexpNames()
+	subexpNames := visaResourceRe.SubexpNames()
 	matchMap := map[string]string{}
 	for i, n := range res {
 		matchMap[subexpNames[i]] = n
