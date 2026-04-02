@@ -6,6 +6,9 @@
 package gotmc
 
 import (
+	"context"
+	"time"
+
 	libusb "github.com/gotmc/libusb/v2"
 )
 
@@ -56,4 +59,48 @@ func (d *Device) Read(p []byte) (n int, err error) {
 		len(p),
 		d.Timeout,
 	)
+}
+
+// ReadContext reads from the USB device's bulk in endpoint in a context aware
+// manner. If the context has a deadline, it is converted to a libusb timeout
+// in milliseconds; otherwise the device's default timeout is used.
+func (d *Device) ReadContext(ctx context.Context, p []byte) (n int, err error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	return d.DeviceHandle.BulkTransfer(
+		d.BulkInEndpoint.EndpointAddress,
+		p,
+		len(p),
+		d.contextTimeout(ctx),
+	)
+}
+
+// WriteContext writes to the USB device's bulk out endpoint in a context aware
+// manner. If the context has a deadline, it is converted to a libusb timeout
+// in milliseconds; otherwise the device's default timeout is used.
+func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	return d.DeviceHandle.BulkTransfer(
+		d.BulkOutEndpoint.EndpointAddress,
+		p,
+		len(p),
+		d.contextTimeout(ctx),
+	)
+}
+
+// contextTimeout returns a libusb timeout in milliseconds derived from the
+// context's deadline. If no deadline is set, the device's default Timeout is
+// returned.
+func (d *Device) contextTimeout(ctx context.Context) int {
+	if deadline, ok := ctx.Deadline(); ok {
+		ms := time.Until(deadline).Milliseconds()
+		if ms <= 0 {
+			return 1 // minimum timeout to avoid blocking indefinitely
+		}
+		return int(ms)
+	}
+	return d.Timeout
 }

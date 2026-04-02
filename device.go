@@ -69,7 +69,7 @@ func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) 
 			alignment := bytes.Repeat([]byte{0x00}, numAlignment)
 			data = append(data, alignment...)
 		}
-		_, err := d.usbDevice.Write(data)
+		_, err := d.usbDevice.WriteContext(ctx, data)
 		if err != nil {
 			return pos, err
 		}
@@ -89,7 +89,7 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 	d.bTag = nextbTag(d.bTag)
 	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), //nolint:gosec
 		useTermChar && d.termCharEnabled, d.termChar)
-	if _, err = d.usbDevice.Write(header[:]); err != nil {
+	if _, err = d.usbDevice.WriteContext(ctx, header[:]); err != nil {
 		return 0, err
 	}
 	debug.Printf("sent reqdevdepmsgin hdr %v (data len %v)\n",
@@ -120,9 +120,9 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 		var resp int
 		var err error
 		if pos == 0 {
-			resp, transfer, _, err = d.readRemoveHeader(d.bTag, p[pos:])
+			resp, transfer, _, err = d.readRemoveHeader(ctx, d.bTag, p[pos:])
 		} else {
-			resp, err = d.readKeepHeader(p[pos:])
+			resp, err = d.readKeepHeader(ctx, p[pos:])
 		}
 		debug.Printf("read: pos %d (buf left %d); got %d bytes",
 			pos, len(p[pos:]), resp)
@@ -214,7 +214,7 @@ func inHdrToString(buf []byte) string {
 }
 
 func (d *Device) readRemoveHeader(
-	expectedBTag byte, p []byte,
+	ctx context.Context, expectedBTag byte, p []byte,
 ) (n int, transfer int, transferAttr byte, err error) {
 	// Reading from the USB device triggers interactions with the hardware,
 	// so we take care with the buffer size. The caller expects len(p)
@@ -237,7 +237,7 @@ func (d *Device) readRemoveHeader(
 		len(p), len(p)+usbtmcHeaderLen, tempSz)
 	temp := make([]byte, tempSz)
 
-	n, err = d.usbDevice.Read(temp)
+	n, err = d.usbDevice.ReadContext(ctx, temp)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -281,8 +281,8 @@ func (d *Device) readRemoveHeader(
 	return n - usbtmcHeaderLen, transfer, transferAttr, nil
 }
 
-func (d *Device) readKeepHeader(p []byte) (n int, err error) {
-	return d.usbDevice.Read(p)
+func (d *Device) readKeepHeader(ctx context.Context, p []byte) (n int, err error) {
+	return d.usbDevice.ReadContext(ctx, p)
 }
 
 // Close closes the underlying USB device.

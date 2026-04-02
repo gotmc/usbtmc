@@ -6,6 +6,7 @@
 package google
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -47,4 +48,16 @@ func (d *Device) WriteString(s string) (n int, err error) {
 // Read reads from the USB device's bulk in endpoint.
 func (d *Device) Read(p []byte) (n int, err error) {
 	return d.BulkInEndpoint.Read(p)
+}
+
+// ReadContext reads from the USB device's bulk in endpoint in a context aware
+// manner.
+func (d *Device) ReadContext(ctx context.Context, p []byte) (n int, err error) {
+	return d.BulkInEndpoint.ReadContext(ctx, p)
+}
+
+// WriteContext writes to the USB device's bulk out endpoint in a context aware
+// manner.
+func (d *Device) WriteContext(ctx context.Context, p []byte) (n int, err error) {
+	return d.BulkOutEndpoint.WriteContext(ctx, p)
 }

@@ -21,6 +21,10 @@ type mockUSBDevice struct {
 }
 
 func (m *mockUSBDevice) Write(p []byte) (int, error) {
+	return m.WriteContext(context.Background(), p)
+}
+
+func (m *mockUSBDevice) WriteContext(_ context.Context, p []byte) (int, error) {
 	cp := make([]byte, len(p))
 	copy(cp, p)
 	m.writes = append(m.writes, cp)
@@ -32,6 +36,10 @@ func (m *mockUSBDevice) WriteString(s string) (int, error) {
 }
 
 func (m *mockUSBDevice) Read(p []byte) (int, error) {
+	return m.ReadContext(context.Background(), p)
+}
+
+func (m *mockUSBDevice) ReadContext(_ context.Context, p []byte) (int, error) {
 	if m.readN >= len(m.reads) {
 		return 0, errors.New("mock: no more reads queued")
 	}

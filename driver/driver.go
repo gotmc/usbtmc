@@ -5,6 +5,8 @@
 
 package driver
 
+import "context"
+
 // Driver defines the behavior required by types that want
 // to implement a USBTMC driver.
 type Driver interface {
@@ -26,4 +28,6 @@ type USBDevice interface {
 	Write(p []byte) (n int, err error)
 	WriteString(s string) (n int, err error)
 	Read(p []byte) (n int, err error)
+	ReadContext(ctx context.Context, p []byte) (n int, err error)
+	WriteContext(ctx context.Context, p []byte) (n int, err error)
 }
