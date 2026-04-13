@@ -254,16 +254,16 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-func TestWriteContextCancellation(t *testing.T) {
+func TestWriteBinaryCancellation(t *testing.T) {
 	mock := &mockUSBDevice{}
 	dev := newTestDevice(mock)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately.
 
-	_, err := dev.WriteContext(ctx, []byte("data"))
+	_, err := dev.WriteBinary(ctx, []byte("data"))
 	if err == nil {
-		t.Fatal("WriteContext with cancelled context should return error")
+		t.Fatal("WriteBinary with cancelled context should return error")
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("error = %v, want context.Canceled", err)
@@ -273,7 +273,7 @@ func TestWriteContextCancellation(t *testing.T) {
 	}
 }
 
-func TestReadContextCancellation(t *testing.T) {
+func TestReadBinaryCancellation(t *testing.T) {
 	mock := &mockUSBDevice{}
 	dev := newTestDevice(mock)
 
@@ -281,9 +281,9 @@ func TestReadContextCancellation(t *testing.T) {
 	cancel()
 
 	buf := make([]byte, 100)
-	_, err := dev.ReadContext(ctx, buf)
+	_, err := dev.ReadBinary(ctx, buf)
 	if err == nil {
-		t.Fatal("ReadContext with cancelled context should return error")
+		t.Fatal("ReadBinary with cancelled context should return error")
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("error = %v, want context.Canceled", err)
