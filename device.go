@@ -165,14 +165,14 @@ func (d *Device) ReadContext(ctx context.Context, p []byte) (n int, err error) {
 	return d.doRead(ctx, p, true)
 }
 
-// BulkRead reads from the device without allowing termChar to be set. Use for
+// ReadRaw reads from the device without allowing termChar to be set. Use for
 // transfers of binary data.
-func (d *Device) BulkRead(p []byte) (n int, err error) {
-	return d.BulkReadContext(context.Background(), p)
+func (d *Device) ReadRaw(p []byte) (n int, err error) {
+	return d.ReadRawContext(context.Background(), p)
 }
 
-// BulkReadContext is like BulkRead but accepts a context.
-func (d *Device) BulkReadContext(ctx context.Context, p []byte) (n int, err error) {
+// ReadRawContext is like ReadRaw but accepts a context.
+func (d *Device) ReadRawContext(ctx context.Context, p []byte) (n int, err error) {
 	return d.doRead(ctx, p, false)
 }
 

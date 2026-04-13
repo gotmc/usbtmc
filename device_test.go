@@ -185,7 +185,7 @@ func TestReadSingleTransfer(t *testing.T) {
 	}
 }
 
-func TestBulkReadNoTermChar(t *testing.T) {
+func TestReadRawNoTermChar(t *testing.T) {
 	mock := &mockUSBDevice{}
 	dev := newTestDevice(mock)
 
@@ -194,18 +194,18 @@ func TestBulkReadNoTermChar(t *testing.T) {
 	mock.reads = [][]byte{resp}
 
 	buf := make([]byte, 100)
-	n, err := dev.BulkRead(buf)
+	n, err := dev.ReadRaw(buf)
 	if err != nil {
-		t.Fatalf("BulkRead returned error: %v", err)
+		t.Fatalf("ReadRaw returned error: %v", err)
 	}
 	if n != len(payload) {
-		t.Errorf("BulkRead returned n=%d, want %d", n, len(payload))
+		t.Errorf("ReadRaw returned n=%d, want %d", n, len(payload))
 	}
 
 	// Verify termCharEnabled is NOT set in the request header (bit 1 of byte 8).
 	reqHeader := mock.writes[0]
 	if reqHeader[8]&0x02 != 0 {
-		t.Error("BulkRead request has termCharEnabled set, want unset")
+		t.Error("ReadRaw request has termCharEnabled set, want unset")
 	}
 }
 

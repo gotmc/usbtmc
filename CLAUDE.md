@@ -5,31 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Test Commands
 
 ```bash
-# Format and vet
-just check
-
-# Run unit tests
-just unit
-
-# Lint with golangci-lint (v2 config in .golangci.yaml)
-just lint
-
-# HTML coverage report
-just cover
-
-# View documentation in browser via pkgsite
-just docs
-
-# Run a single test
-go test -run TestFuncName ./...
-
-# Tidy and verify modules
-just tidy
+just check              # go fmt + go vet
+just unit               # unit tests (runs check first, -race -short -cover)
+just unit -run TestName # run a single test
+just lint               # golangci-lint v2 with .golangci.yaml config
+just cover              # HTML coverage report (also: just cover int, just cover e2e, just cover all)
+just tidy               # go mod tidy + verify
+just docs               # local pkgsite viewer
 ```
 
 Requires `libusb` C library installed on the system (used by both driver backends).
 
-`just unit` runs `just check` (fmt + vet) automatically before tests. Tests run with `-short` and `-race` flags by default.
+Set `USBTMC_DEBUG=1` to enable debug logging to stderr (see debug.go).
 
 ## Architecture
 
@@ -45,7 +32,9 @@ Drivers self-register via `init()` calling `usbtmc.Register()`. Users select a d
 import _ "github.com/gotmc/usbtmc/driver/google"
 ```
 
-**Core flow:** `Context` (context.go) wraps a driver context and creates `Device` instances. `Device` (device.go) implements USBTMC protocol framing — it encodes/decodes the 12-byte USBTMC bulk headers (helpers.go) around user data for USB bulk transfers. Key device methods: `Write`, `Read` (ASCII with termChar), `BulkRead` (binary without termChar), `WriteString`, `Command` (SCPI with auto-newline), `Query` (write+read). `Write`, `Read`, `BulkRead`, and `WriteString` have context-free signatures to satisfy the `ivi.Instrument` interface, with `*Context` variants (e.g., `WriteContext`, `ReadContext`) that accept a `context.Context`.
+**Core flow:** `Context` (context.go) wraps a driver context and creates `Device` instances. `Device` (device.go) implements USBTMC protocol framing — it encodes/decodes the 12-byte USBTMC bulk headers (helpers.go) around user data for USB bulk transfers. Key device methods: `Write`, `Read` (ASCII with termChar), `ReadRaw` (binary without termChar), `WriteString`, `Command` (SCPI with auto-newline), `Query` (write+read). `Write`, `Read`, `ReadRaw`, and `WriteString` have context-free signatures to satisfy the `ivi.Instrument` interface, with `*Context` variants (e.g., `WriteContext`, `ReadContext`, `ReadRawContext`) that accept a `context.Context`.
+
+**USBTMC protocol details:** Each USB transfer uses a 12-byte header (defined in helpers.go per USBTMC Spec 1.0 Tables 1-4). The `bTag` field increments between transfers (1-255) for sequencing. The IO buffer is 1MB (`ioBufferSize` in constants.go). Constants in constants.go map directly to the USBTMC and USB488 specifications — comments reference specific table numbers.
 
 **VISA addressing:** visa.go parses VISA resource strings (e.g., `USB0::0x0957::0x2818::0::INSTR`) to extract VID/PID for device lookup.
 
