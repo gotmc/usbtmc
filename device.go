@@ -137,7 +137,7 @@ func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int,
 			dumpLen, dumpTrunc = left, 0
 		}
 		debug.Printf("data[%d:]=%s%s\n", pos,
-			hex.EncodeToString(p[pos:dumpLen]),
+			hex.EncodeToString(p[pos:pos+dumpLen]),
 			[]string{"", "..."}[dumpTrunc])
 
 		if err != nil {

@@ -118,6 +118,8 @@ func (c *Context) NewDeviceByVIDPID(VID, PID int) (driver.USBDevice, error) {
 					"no devices found after reboot matching VID %s and PID %s", vid, usbtmcPID,
 				)
 			}
+		} else {
+			return nil, fmt.Errorf("no devices found matching VID %s and PID %s", vid, usbtmcPID)
 		}
 	} else if len(devs) == 0 {
 		return nil, fmt.Errorf("no devices found matching VID %s and PID %s", vid, usbtmcPID)
