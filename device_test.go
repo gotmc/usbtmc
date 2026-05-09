@@ -6,6 +6,7 @@
 package usbtmc
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -59,15 +60,24 @@ func (m *mockUSBDevice) String() string {
 }
 
 // buildDevDepMsgInResponse builds a USBTMC DEV_DEP_MSG_IN response header
-// with the given bTag and payload.
+// with the given bTag and payload (EOM=1, single-message transaction).
 func buildDevDepMsgInResponse(bTag byte, payload []byte) []byte {
+	return buildDevDepMsgInResponseEOM(bTag, payload, true)
+}
+
+// buildDevDepMsgInResponseEOM builds a USBTMC DEV_DEP_MSG_IN response with an
+// explicit EOM bit, for exercising the §3.3.1 multi-message-in path where the
+// first response carries EOM=0.
+func buildDevDepMsgInResponseEOM(bTag byte, payload []byte, eom bool) []byte {
 	hdr := make([]byte, usbtmcHeaderLen)
 	hdr[0] = byte(devDepMsgIn)
 	hdr[1] = bTag
 	hdr[2] = invertbTag(bTag)
 	hdr[3] = 0x00
 	binary.LittleEndian.PutUint32(hdr[4:8], uint32(len(payload))) //nolint:gosec
-	hdr[8] = 0x01                                                 // EOM
+	if eom {
+		hdr[8] = 0x01
+	}
 	resp := append(hdr, payload...)
 	// Pad to 4-byte alignment.
 	if m := len(resp) % 4; m != 0 {
@@ -338,6 +348,105 @@ func TestClose(t *testing.T) {
 	}
 	if !mock.closed {
 		t.Error("expected underlying USB device to be closed")
+	}
+}
+
+// TestReadMultiMessageEOM exercises the §3.3.1 multi-message-in path: when a
+// DEV_DEP_MSG_IN response reports EOM=0, doRead must issue another
+// REQUEST_DEV_DEP_MSG_IN and concatenate the next response into the caller's
+// buffer.
+func TestReadMultiMessageEOM(t *testing.T) {
+	mock := &mockUSBDevice{}
+	dev := newTestDevice(mock)
+
+	chunk1 := []byte("first half of message,")
+	chunk2 := []byte(" and the second half\n")
+	// The empty entry models a compliant device's bulk-IN endpoint being
+	// empty during the trailing-drain probe between the two messages.
+	mock.reads = [][]byte{
+		buildDevDepMsgInResponseEOM(1, chunk1, false),
+		nil,
+		buildDevDepMsgInResponseEOM(2, chunk2, true),
+	}
+
+	buf := make([]byte, 256)
+	n, err := dev.ReadBinary(context.Background(), buf)
+	if err != nil {
+		t.Fatalf("ReadBinary returned error: %v", err)
+	}
+	want := string(chunk1) + string(chunk2)
+	if got := string(buf[:n]); got != want {
+		t.Errorf("ReadBinary data = %q, want %q", got, want)
+	}
+	if len(mock.writes) != 2 {
+		t.Errorf("expected 2 REQUEST_DEV_DEP_MSG_IN writes, got %d", len(mock.writes))
+	}
+}
+
+// TestReadTrailingDrain exercises the first-iteration trailing-drain path:
+// when a device queues additional bulk-IN packets past the declared transfer
+// length, doRead must absorb them rather than issuing a second REQUEST.
+func TestReadTrailingDrain(t *testing.T) {
+	mock := &mockUSBDevice{}
+	dev := newTestDevice(mock)
+
+	declared := bytes.Repeat([]byte("D"), 100)
+	trail1 := []byte("trailing-1 ")
+	trail2 := []byte("trailing-2 final\n")
+	mock.reads = [][]byte{
+		buildDevDepMsgInResponseEOM(1, declared, false),
+		trail1,
+		trail2,
+		nil,
+	}
+
+	buf := make([]byte, 256)
+	n, err := dev.ReadBinary(context.Background(), buf)
+	if err != nil {
+		t.Fatalf("ReadBinary returned error: %v", err)
+	}
+	want := string(declared) + string(trail1) + string(trail2)
+	if got := string(buf[:n]); got != want {
+		t.Errorf("ReadBinary data = %q, want %q", got, want)
+	}
+	if len(mock.writes) != 1 {
+		t.Errorf("expected 1 REQUEST_DEV_DEP_MSG_IN write, got %d", len(mock.writes))
+	}
+}
+
+// TestReadContinuationStaleBTag covers firmwares whose continuation
+// DEV_DEP_MSG_IN response echoes the previous bTag in the bookkeeping header
+// and then queues the remaining payload as raw bulk-IN packets. doRead must
+// recognise the stale-bTag mismatch as recoverable on a continuation read and
+// drain the trailing raw packets.
+func TestReadContinuationStaleBTag(t *testing.T) {
+	mock := &mockUSBDevice{}
+	dev := newTestDevice(mock)
+
+	chunk1 := []byte("first chunk of data...")
+	staleHeader := buildDevDepMsgInResponseEOM(1 /* stale bTag */, nil, false)
+	rawTail1 := []byte("more raw data ")
+	rawTail2 := []byte("even more raw data")
+	mock.reads = [][]byte{
+		buildDevDepMsgInResponseEOM(1, chunk1, false),
+		nil,
+		staleHeader,
+		rawTail1,
+		rawTail2,
+		nil,
+	}
+
+	buf := make([]byte, 256)
+	n, err := dev.ReadBinary(context.Background(), buf)
+	if err != nil {
+		t.Fatalf("ReadBinary returned error: %v", err)
+	}
+	want := string(chunk1) + string(rawTail1) + string(rawTail2)
+	if got := string(buf[:n]); got != want {
+		t.Errorf("ReadBinary data = %q, want %q", got, want)
+	}
+	if len(mock.writes) != 2 {
+		t.Errorf("expected 2 REQUEST_DEV_DEP_MSG_IN writes, got %d", len(mock.writes))
 	}
 }
 

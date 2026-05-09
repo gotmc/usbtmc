@@ -10,9 +10,11 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gotmc/usbtmc/driver"
 )
@@ -25,7 +27,28 @@ const (
 	maxPacketSize = 512
 
 	usbtmcHeaderLen = 12
+
+	// trailingDrainTimeout caps how long doRead waits when draining bulk-IN
+	// packets queued past the device-declared transfer length. Devices that
+	// terminate with a zero-length packet return immediately; this timeout
+	// is only reached by devices that go silent rather than sending a ZLP.
+	trailingDrainTimeout = 20 * time.Millisecond
 )
+
+// Sentinel errors returned by readRemoveHeader for response framing problems.
+// doRead matches these via errors.Is so it can recover from continuation
+// reads on firmwares that echo a stale bTag rather than advancing it.
+var (
+	errMsgIDMismatch       = errors.New("unexpected MsgID")
+	errBTagMismatch        = errors.New("bTag mismatch")
+	errBTagInverseMismatch = errors.New("bTagInverse mismatch")
+)
+
+func isContinuationHeaderMismatch(err error) bool {
+	return errors.Is(err, errMsgIDMismatch) ||
+		errors.Is(err, errBTagMismatch) ||
+		errors.Is(err, errBTagInverseMismatch)
+}
 
 // Device models a USBTMC device, which includes a USB device and the required
 // USBTMC attributes and methods.
@@ -80,80 +103,119 @@ func (d *Device) WriteBinary(ctx context.Context, p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// doRead creates and sends the header on the bulk out endpoint and then reads
-// from the bulk in endpoint per USBTMC standard.
+// doRead sends REQUEST_DEV_DEP_MSG_IN on the bulk-out endpoint and reads the
+// response from the bulk-in endpoint per the USBTMC standard.
+//
+// USBTMC §3.3.1 allows a logical message-in transaction to span multiple
+// DEV_DEP_MSG_IN responses, each driven by its own REQUEST. The outer loop
+// continues until EOM=1, the caller's buffer is full, or the trailing
+// drain returns zero bytes (ZLP or timeout).
 func (d *Device) doRead(ctx context.Context, p []byte, useTermChar bool) (n int, err error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-	d.bTag = nextbTag(d.bTag)
-	header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)), //nolint:gosec
-		useTermChar && d.termCharEnabled, d.termChar)
-	if _, err = d.usbDevice.WriteContext(ctx, header[:]); err != nil {
-		return 0, err
-	}
-	debug.Printf("sent reqdevdepmsgin hdr %v (data len %v)\n",
-		hex.EncodeToString(header[:]), len(p))
-
-	// Per Figure 4 in the USBTMC spec, messages may be sent in multiple
-	// transfers. The first will have a USBTMC header, the middle transfers
-	// will only contain data bytes, and the final may end with alignment
-	// bytes. Mixed in with this are three definitions of length:
-	//
-	//   1) the number of bytes the caller wants to receive (len(p))
-	//   2) the number of bytes the device means to send ('transfer', from
-	//      the USBTMC header)
-	//   3) the number of bytes in the current transfer (resp).
-	//
-	// The header also includes an end-of-message (EOM) bit, but it's not
-	// clear how this bit is used.
-	//
-	// We'll attempt to read the number of bytes the caller wants (1), but
-	// will stop short if the number of bytes the device wants to send (2)
-	// is reached or if it sends a transfer with zero non-header bytes.
 	pos := 0
-	var transfer int
-	for pos < len(p) {
+	for initial := true; ; initial = false {
 		if err := ctx.Err(); err != nil {
 			return pos, err
 		}
-		var resp int
-		var err error
-		if pos == 0 {
-			resp, transfer, _, err = d.readRemoveHeader(ctx, d.bTag, p[pos:])
-		} else {
-			resp, err = d.readKeepHeader(ctx, p[pos:])
-		}
-		debug.Printf("read: pos %d (buf left %d); got %d bytes",
-			pos, len(p[pos:]), resp)
-
-		dumpLen, dumpTrunc := 100, 1
-		if resp < dumpLen {
-			dumpLen, dumpTrunc = resp, 0
-		}
-		if left := len(p) - pos; left < dumpLen {
-			dumpLen, dumpTrunc = left, 0
-		}
-		debug.Printf("data[%d:]=%s%s\n", pos,
-			hex.EncodeToString(p[pos:pos+dumpLen]),
-			[]string{"", "..."}[dumpTrunc])
-
-		if err != nil {
+		d.bTag = nextbTag(d.bTag)
+		header := encodeMsgInBulkOutHeader(d.bTag, uint32(len(p)-pos), //nolint:gosec
+			useTermChar && d.termCharEnabled, d.termChar)
+		if _, err = d.usbDevice.WriteContext(ctx, header[:]); err != nil {
 			return pos, err
 		}
-		if resp == 0 {
-			debug.Print("zero-length read; giving up")
-			break
+		debug.Printf("sent reqdevdepmsgin hdr %v (data len %v)\n",
+			hex.EncodeToString(header[:]), len(p)-pos)
+
+		msgStart := pos
+		resp, transfer, transferAttr, rerr := d.readRemoveHeader(ctx, d.bTag, p[pos:])
+		if rerr != nil {
+			// Some firmwares answer a continuation REQUEST with a
+			// bookkeeping packet that echoes the previous bTag and queue
+			// the remaining payload as raw bulk-IN packets without a
+			// USBTMC header. Tolerate the mismatch on continuation reads
+			// by draining what's queued and returning what we have.
+			if !initial && isContinuationHeaderMismatch(rerr) {
+				debug.Printf("continuation header mismatch (tolerated): %v", rerr)
+				pos += d.drainBulkIn(ctx, p[pos:])
+				return pos, nil
+			}
+			return pos, rerr
 		}
 		pos += resp
-		if pos >= transfer {
+
+		// Per Figure 4 of the USBTMC spec, subsequent transfers carry only
+		// data plus alignment padding. Read until the device-declared
+		// transfer is reached, the caller's buffer is full, or a read
+		// returns zero bytes.
+		for pos-msgStart < transfer && pos < len(p) {
+			if err := ctx.Err(); err != nil {
+				return pos, err
+			}
+			r, rerr := d.readKeepHeader(ctx, p[pos:])
+			debug.Printf("read: pos %d (buf left %d); got %d bytes",
+				pos, len(p[pos:]), r)
+			dumpLen, dumpTrunc := 100, 1
+			if r < dumpLen {
+				dumpLen, dumpTrunc = r, 0
+			}
+			if left := len(p) - pos; left < dumpLen {
+				dumpLen, dumpTrunc = left, 0
+			}
+			debug.Printf("data[%d:]=%s%s\n", pos,
+				hex.EncodeToString(p[pos:pos+dumpLen]),
+				[]string{"", "..."}[dumpTrunc])
+			if rerr != nil {
+				return pos, rerr
+			}
+			if r == 0 {
+				debug.Print("zero-length read; giving up")
+				break
+			}
+			pos += r
+		}
+
+		// On the first iteration, drain any bulk-IN packets queued past the
+		// declared transfer length. Some devices (e.g. Rigol DS1000Z series)
+		// advertise a smaller transfer_size than the actual payload and never
+		// set EOM=1, relying on a ZLP to signal end-of-message. The timeout
+		// is a safety net for devices that go silent instead of sending a ZLP.
+		var trailing int
+		if initial && pos < len(p) {
+			drainCtx, cancel := context.WithTimeout(ctx, trailingDrainTimeout)
+			trailing = d.drainBulkIn(drainCtx, p[pos:])
+			cancel()
+			pos += trailing
+		}
+		if trailing == 0 && pos-msgStart > transfer {
+			pos = msgStart + transfer
+		}
+		eom := transferAttr&0x01 != 0
+		if eom || pos >= len(p) || pos == msgStart || trailing > 0 {
 			break
 		}
 	}
+	return pos, nil
+}
 
-	return min(pos, transfer), nil
+// drainBulkIn reads raw bulk-IN packets into p until the buffer is full, a
+// zero-length read is returned, an error occurs, or ctx is cancelled.
+func (d *Device) drainBulkIn(ctx context.Context, p []byte) int {
+	n := 0
+	for n < len(p) {
+		if ctx.Err() != nil {
+			break
+		}
+		r, err := d.readKeepHeader(ctx, p[n:])
+		if err != nil || r == 0 {
+			break
+		}
+		n += r
+	}
+	return n
 }
 
 // Read reads from the device respecting the termChar setting. Use for transfers
@@ -249,18 +311,18 @@ func (d *Device) readRemoveHeader(
 	respMsgID := msgID(temp[0])
 	if respMsgID != devDepMsgIn {
 		return 0, 0, 0, fmt.Errorf(
-			"unexpected MsgID: got %d, want %d (DEV_DEP_MSG_IN)",
-			respMsgID, devDepMsgIn)
+			"%w: got %d, want %d (DEV_DEP_MSG_IN)",
+			errMsgIDMismatch, respMsgID, devDepMsgIn)
 	}
 	respBTag := temp[1]
 	if respBTag != expectedBTag {
 		return 0, 0, 0, fmt.Errorf(
-			"bTag mismatch: got %d, want %d", respBTag, expectedBTag)
+			"%w: got %d, want %d", errBTagMismatch, respBTag, expectedBTag)
 	}
 	if temp[2] != invertbTag(respBTag) {
 		return 0, 0, 0, fmt.Errorf(
-			"bTagInverse mismatch: got %d, want %d",
-			temp[2], invertbTag(respBTag))
+			"%w: got %d, want %d",
+			errBTagInverseMismatch, temp[2], invertbTag(respBTag))
 	}
 
 	t32 := binary.LittleEndian.Uint32(temp[4:8])
